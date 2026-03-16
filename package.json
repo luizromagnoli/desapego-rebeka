@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "PORT=${PORT:-3000} HOSTNAME=0.0.0.0 node .next/standalone/server.js"
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.1",
