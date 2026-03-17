@@ -22,6 +22,7 @@ export async function savePhotos(files: File[]): Promise<string[]> {
     const outputPath = path.join(UPLOADS_DIR, filename);
 
     await sharp(buffer)
+      .rotate()
       .resize({ width: 1000, withoutEnlargement: true })
       .jpeg({ quality: 75 })
       .toFile(outputPath);
