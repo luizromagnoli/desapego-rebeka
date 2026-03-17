@@ -9,6 +9,19 @@ function getHeaders(): HeadersInit {
   return { 'x-admin-password': pw };
 }
 
+interface PhotoItem {
+  type: 'existing';
+  photo: ItemPhoto;
+}
+
+interface NewPhotoItem {
+  type: 'new';
+  file: File;
+  url: string;
+}
+
+type DraggablePhoto = PhotoItem | NewPhotoItem;
+
 export default function EditarItemPage() {
   const router = useRouter();
   const params = useParams();
@@ -19,11 +32,11 @@ export default function EditarItemPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [existingPhotos, setExistingPhotos] = useState<ItemPhoto[]>([]);
-  const [newFiles, setNewFiles] = useState<File[]>([]);
-  const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [allPhotos, setAllPhotos] = useState<DraggablePhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const fetchItem = useCallback(async () => {
     setLoading(true);
@@ -34,9 +47,8 @@ export default function EditarItemPage() {
       setTitle(item.title);
       setDescription(item.description);
       setPrice(String(item.price));
-      setExistingPhotos(
-        [...item.photos].sort((a, b) => a.sort_order - b.sort_order)
-      );
+      const sorted = [...item.photos].sort((a, b) => a.sort_order - b.sort_order);
+      setAllPhotos(sorted.map((photo) => ({ type: 'existing', photo })));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
@@ -51,33 +63,71 @@ export default function EditarItemPage() {
   function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files;
     if (!selected) return;
-    const fileList = Array.from(selected);
-    setNewFiles((prev) => [...prev, ...fileList]);
-
-    const urls = fileList.map((f) => URL.createObjectURL(f));
-    setNewPreviews((prev) => [...prev, ...urls]);
-  }
-
-  function removeNewFile(index: number) {
-    URL.revokeObjectURL(newPreviews[index]);
-    setNewFiles((prev) => prev.filter((_, i) => i !== index));
-    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
+    const newPhotos: DraggablePhoto[] = Array.from(selected).map((file) => ({
+      type: 'new',
+      file,
+      url: URL.createObjectURL(file),
+    }));
+    setAllPhotos((prev) => [...prev, ...newPhotos]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }
 
-  async function handleRemoveExistingPhoto(photo: ItemPhoto) {
-    try {
-      const res = await fetch(`/api/items/${id}/photos/${photo.id}`, {
-        method: 'DELETE',
-        headers: getHeaders(),
-      });
-      if (!res.ok) throw new Error('Erro ao remover foto');
-      setExistingPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao remover foto');
+  async function removePhoto(index: number) {
+    const photo = allPhotos[index];
+    if (photo.type === 'existing') {
+      try {
+        const res = await fetch(`/api/items/${id}/photos/${photo.photo.id}`, {
+          method: 'DELETE',
+          headers: getHeaders(),
+        });
+        if (!res.ok) throw new Error('Erro ao remover foto');
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Erro ao remover foto');
+        return;
+      }
+    } else {
+      URL.revokeObjectURL(photo.url);
     }
+    setAllPhotos((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleDragStart(index: number) {
+    setDragIndex(index);
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }
+
+  function handleDrop(index: number) {
+    if (dragIndex === null || dragIndex === index) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    setAllPhotos((prev) => {
+      const updated = [...prev];
+      const [dragged] = updated.splice(dragIndex, 1);
+      updated.splice(index, 0, dragged);
+      return updated;
+    });
+    setDragIndex(null);
+    setDragOverIndex(null);
+  }
+
+  function handleDragEnd() {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  }
+
+  function getPhotoSrc(photo: DraggablePhoto): string {
+    if (photo.type === 'existing') {
+      return `/api/uploads/${photo.photo.filename}`;
+    }
+    return photo.url;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -99,6 +149,23 @@ export default function EditarItemPage() {
       formData.append('title', title.trim());
       formData.append('description', description.trim());
       formData.append('price', price);
+
+      // Send the photo order: existing photo IDs and new files in order
+      const photoOrder: string[] = [];
+      const newFiles: File[] = [];
+      let newFileIndex = 0;
+
+      for (const photo of allPhotos) {
+        if (photo.type === 'existing') {
+          photoOrder.push(photo.photo.id);
+        } else {
+          photoOrder.push(`new:${newFileIndex}`);
+          newFiles.push(photo.file);
+          newFileIndex++;
+        }
+      }
+
+      formData.append('photoOrder', JSON.stringify(photoOrder));
       newFiles.forEach((file) => formData.append('files', file));
 
       const res = await fetch(`/api/items/${id}`, {
@@ -188,40 +255,10 @@ export default function EditarItemPage() {
           />
         </div>
 
-        {/* Existing photos */}
-        {existingPhotos.length > 0 && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fotos atuais
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {existingPhotos.map((photo) => (
-                <div key={photo.id} className="relative group">
-                  <img
-                    src={`/api/uploads/${photo.filename}`}
-                    alt="Foto do item"
-                    className="w-20 h-20 object-cover rounded border border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveExistingPhoto(photo)}
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    &times;
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* New photos */}
+        {/* All photos - draggable */}
         <div className="mb-6">
-          <label
-            htmlFor="photos"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Adicionar fotos
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Fotos
           </label>
           <input
             id="photos"
@@ -232,25 +269,45 @@ export default function EditarItemPage() {
             onChange={handleFilesChange}
             className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
-          {newPreviews.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-3">
-              {newPreviews.map((url, i) => (
-                <div key={i} className="relative group">
-                  <img
-                    src={url}
-                    alt={`Nova foto ${i + 1}`}
-                    className="w-20 h-20 object-cover rounded border border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeNewFile(i)}
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          {allPhotos.length > 0 && (
+            <>
+              <p className="mt-2 text-xs text-gray-500">
+                Arraste para reordenar. A primeira foto será a foto principal.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-3">
+                {allPhotos.map((photo, i) => (
+                  <div
+                    key={photo.type === 'existing' ? photo.photo.id : photo.url}
+                    draggable
+                    onDragStart={() => handleDragStart(i)}
+                    onDragOver={(e) => handleDragOver(e, i)}
+                    onDrop={() => handleDrop(i)}
+                    onDragEnd={handleDragEnd}
+                    className={`relative group cursor-grab active:cursor-grabbing ${
+                      dragIndex === i ? 'opacity-40' : ''
+                    } ${dragOverIndex === i && dragIndex !== i ? 'ring-2 ring-blue-500 ring-offset-2 rounded' : ''}`}
                   >
-                    &times;
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <img
+                      src={getPhotoSrc(photo)}
+                      alt={`Foto ${i + 1}`}
+                      className="w-20 h-20 object-cover rounded border border-gray-200"
+                    />
+                    {i === 0 && (
+                      <span className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white text-[10px] text-center py-0.5 rounded-b">
+                        Principal
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 

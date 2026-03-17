@@ -8,6 +8,11 @@ function getHeaders(): HeadersInit {
   return { 'x-admin-password': pw };
 }
 
+interface PhotoPreview {
+  file: File;
+  url: string;
+}
+
 export default function NovoItemPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -15,35 +20,58 @@ export default function NovoItemPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<PhotoPreview[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files;
     if (!selected) return;
-    const fileList = Array.from(selected);
-    setFiles(fileList);
-
-    // Generate previews
-    const urls = fileList.map((f) => URL.createObjectURL(f));
-    // Revoke old previews
-    previews.forEach((url) => URL.revokeObjectURL(url));
-    setPreviews(urls);
-  }
-
-  function removeFile(index: number) {
-    URL.revokeObjectURL(previews[index]);
-    const newFiles = files.filter((_, i) => i !== index);
-    const newPreviews = previews.filter((_, i) => i !== index);
-    setFiles(newFiles);
-    setPreviews(newPreviews);
-
-    // Reset file input since we modified the list
+    const newPhotos = Array.from(selected).map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+    setPhotos((prev) => [...prev, ...newPhotos]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  }
+
+  function removePhoto(index: number) {
+    URL.revokeObjectURL(photos[index].url);
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleDragStart(index: number) {
+    setDragIndex(index);
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }
+
+  function handleDrop(index: number) {
+    if (dragIndex === null || dragIndex === index) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    setPhotos((prev) => {
+      const updated = [...prev];
+      const [dragged] = updated.splice(dragIndex, 1);
+      updated.splice(index, 0, dragged);
+      return updated;
+    });
+    setDragIndex(null);
+    setDragOverIndex(null);
+  }
+
+  function handleDragEnd() {
+    setDragIndex(null);
+    setDragOverIndex(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -65,7 +93,7 @@ export default function NovoItemPage() {
       formData.append('title', title.trim());
       formData.append('description', description.trim());
       formData.append('price', price);
-      files.forEach((file) => formData.append('files', file));
+      photos.forEach((p) => formData.append('files', p.file));
 
       const res = await fetch('/api/items', {
         method: 'POST',
@@ -166,25 +194,45 @@ export default function NovoItemPage() {
             onChange={handleFilesChange}
             className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
-          {previews.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-3">
-              {previews.map((url, i) => (
-                <div key={i} className="relative group">
-                  <img
-                    src={url}
-                    alt={`Preview ${i + 1}`}
-                    className="w-20 h-20 object-cover rounded border border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          {photos.length > 0 && (
+            <>
+              <p className="mt-2 text-xs text-gray-500">
+                Arraste para reordenar. A primeira foto será a foto principal.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-3">
+                {photos.map((photo, i) => (
+                  <div
+                    key={photo.url}
+                    draggable
+                    onDragStart={() => handleDragStart(i)}
+                    onDragOver={(e) => handleDragOver(e, i)}
+                    onDrop={() => handleDrop(i)}
+                    onDragEnd={handleDragEnd}
+                    className={`relative group cursor-grab active:cursor-grabbing ${
+                      dragIndex === i ? 'opacity-40' : ''
+                    } ${dragOverIndex === i && dragIndex !== i ? 'ring-2 ring-blue-500 ring-offset-2 rounded' : ''}`}
                   >
-                    &times;
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <img
+                      src={photo.url}
+                      alt={`Preview ${i + 1}`}
+                      className="w-20 h-20 object-cover rounded border border-gray-200"
+                    />
+                    {i === 0 && (
+                      <span className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white text-[10px] text-center py-0.5 rounded-b">
+                        Principal
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 

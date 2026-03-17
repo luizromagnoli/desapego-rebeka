@@ -256,3 +256,37 @@ export function markAsAvailable(id: string): void {
     "UPDATE items SET status = 'available', buyer_name = NULL, buyer_contact = NULL WHERE id = ?"
   ).run(id);
 }
+
+export function reorderPhotos(
+  itemId: string,
+  order: { type: "existing" | "new"; value: string }[]
+): void {
+  const db = getDb();
+
+  // Get all photos for this item to map filenames to IDs for new photos
+  const allPhotos = db
+    .prepare("SELECT * FROM item_photos WHERE item_id = ? ORDER BY sort_order ASC")
+    .all(itemId) as ItemPhoto[];
+
+  const update = db.prepare(
+    "UPDATE item_photos SET sort_order = ? WHERE id = ?"
+  );
+
+  const reorder = db.transaction(() => {
+    let sortOrder = 0;
+    for (const entry of order) {
+      if (entry.type === "existing") {
+        update.run(sortOrder, entry.value);
+      } else {
+        // Find the photo by filename
+        const photo = allPhotos.find((p) => p.filename === entry.value);
+        if (photo) {
+          update.run(sortOrder, photo.id);
+        }
+      }
+      sortOrder++;
+    }
+  });
+
+  reorder();
+}

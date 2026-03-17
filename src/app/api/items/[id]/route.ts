@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getItem, updateItem, deleteItem, addPhotos } from "@/lib/items";
+import { getItem, updateItem, deleteItem, addPhotos, reorderPhotos } from "@/lib/items";
 import { savePhotos } from "@/lib/upload";
 import { isAdmin, unauthorizedResponse } from "@/lib/auth";
 
@@ -56,9 +56,41 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   updateItem(id, updateData);
 
   const files = formData.getAll("files") as File[];
+  let newFilenames: string[] = [];
   if (files.length > 0 && files[0].size > 0) {
-    const filenames = await savePhotos(files);
-    addPhotos(id, filenames);
+    newFilenames = await savePhotos(files);
+  }
+
+  const photoOrderRaw = formData.get("photoOrder");
+  if (typeof photoOrderRaw === "string") {
+    const photoOrder = JSON.parse(photoOrderRaw) as string[];
+    // Build final ordered list: existing photo IDs keep their ID, "new:N" maps to new filenames
+    const orderedExistingIds: string[] = [];
+    const orderedNewFilenames: string[] = [];
+    const finalOrder: { type: "existing" | "new"; value: string }[] = [];
+
+    for (const entry of photoOrder) {
+      if (entry.startsWith("new:")) {
+        const idx = parseInt(entry.split(":")[1], 10);
+        if (idx < newFilenames.length) {
+          finalOrder.push({ type: "new", value: newFilenames[idx] });
+          orderedNewFilenames.push(newFilenames[idx]);
+        }
+      } else {
+        finalOrder.push({ type: "existing", value: entry });
+        orderedExistingIds.push(entry);
+      }
+    }
+
+    // Add new photos first so they exist in DB
+    if (orderedNewFilenames.length > 0) {
+      addPhotos(id, orderedNewFilenames);
+    }
+
+    // Now reorder all photos
+    reorderPhotos(id, finalOrder);
+  } else if (newFilenames.length > 0) {
+    addPhotos(id, newFilenames);
   }
 
   const updated = getItem(id);
