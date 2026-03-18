@@ -213,6 +213,14 @@ export default function ItemDetailPage() {
                   </p>
                 </div>
               )}
+
+              <div className="mt-6 bg-gray-50 border border-gray-200 rounded-md p-4 text-sm text-gray-600">
+                <p className="font-medium text-gray-700 mb-1">Retirada no local</p>
+                <p>
+                  Não realizamos entregas. O comprador é responsável por retirar
+                  os itens no estúdio em Alphaville - Barueri/SP.
+                </p>
+              </div>
             </div>
           </div>
         </div>
