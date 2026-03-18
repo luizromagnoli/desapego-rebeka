@@ -286,8 +286,9 @@ export default function ItemDetailPage() {
               <div className="mt-6 bg-gray-50 border border-gray-200 rounded-md p-4 text-sm text-gray-600">
                 <p className="font-medium text-gray-700 mb-1">Retirada no local</p>
                 <p>
-                  Não realizamos entregas. O comprador é responsável por retirar
-                  os itens no estúdio em Alphaville - Barueri/SP.
+                  O comprador é responsável por retirar os itens no estúdio em
+                  Alphaville - Barueri/SP, na data combinada. Para fotógrafos de
+                  Itu/SP a entrega será a combinar em Itu.
                 </p>
               </div>
             </div>
