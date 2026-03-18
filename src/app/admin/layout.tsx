@@ -125,6 +125,7 @@ function AdminHeader({ onLogout }: { onLogout: () => void }) {
 
   const links = [
     { href: '/admin/itens', label: 'Itens' },
+    { href: '/admin/reservados', label: 'Reservados' },
     { href: '/admin/resumo', label: 'Resumo' },
   ];
 

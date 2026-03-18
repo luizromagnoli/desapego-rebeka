@@ -17,7 +17,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [tab, setTab] = useState<'all' | 'reserved'>('all');
 
   useEffect(() => {
     setSelectedIds(getCart());
@@ -49,9 +48,6 @@ export default function HomePage() {
     }
   }
 
-  const filteredItems = tab === 'reserved'
-    ? items.filter((item) => item.status === 'reserved')
-    : items;
   const selectedItems = items.filter((item) => selectedIds.includes(item.id));
   const totalPrice = selectedItems.reduce((sum, item) => sum + item.price, 0);
 
@@ -72,34 +68,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="max-w-6xl mx-auto px-4 pt-6">
-        <div className="flex gap-4 border-b border-gray-200">
-          <button
-            onClick={() => setTab('all')}
-            className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'all'
-                ? 'border-amber-600 text-amber-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Todos
-          </button>
-          <button
-            onClick={() => setTab('reserved')}
-            className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === 'reserved'
-                ? 'border-amber-600 text-amber-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Reservados
-          </button>
-        </div>
-      </div>
-
       {/* Content */}
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="max-w-6xl mx-auto px-4 py-8">
         {loading && (
           <p className="text-center text-gray-500">Carregando itens...</p>
         )}
@@ -108,14 +78,14 @@ export default function HomePage() {
           <p className="text-center text-red-600">{error}</p>
         )}
 
-        {!loading && !error && filteredItems.length === 0 && (
+        {!loading && !error && items.length === 0 && (
           <p className="text-center text-gray-500">
-            {tab === 'reserved' ? 'Nenhum item reservado no momento.' : 'Nenhum item disponível no momento.'}
+            Nenhum item disponível no momento.
           </p>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map((item) => {
+          {items.map((item) => {
             const isReserved = item.status === 'reserved';
             const isSelected = selectedIds.includes(item.id);
             const firstPhoto = item.photos?.[0];
