@@ -115,10 +115,27 @@ export default function ItemDetailPage() {
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="md:flex">
-            {/* Photo gallery */}
+            {/* Photo carousel */}
             <div className="md:w-1/2">
-              {/* Main photo */}
-              <div className="relative">
+              <div
+                className="relative"
+                onTouchStart={(e) => {
+                  const touch = e.touches[0];
+                  (e.currentTarget as HTMLElement).dataset.touchX = String(touch.clientX);
+                }}
+                onTouchEnd={(e) => {
+                  const startX = Number((e.currentTarget as HTMLElement).dataset.touchX);
+                  const endX = e.changedTouches[0].clientX;
+                  const diff = startX - endX;
+                  if (Math.abs(diff) > 50) {
+                    if (diff > 0 && mainPhotoIndex < photos.length - 1) {
+                      setMainPhotoIndex((i) => i + 1);
+                    } else if (diff < 0 && mainPhotoIndex > 0) {
+                      setMainPhotoIndex((i) => i - 1);
+                    }
+                  }
+                }}
+              >
                 {mainPhoto ? (
                   <img
                     src={`/api/uploads/${mainPhoto.filename}`}
@@ -148,35 +165,59 @@ export default function ItemDetailPage() {
                     </svg>
                   </div>
                 )}
+
                 {isReserved && (
                   <span className="absolute top-3 right-3 bg-amber-600 text-white text-sm font-semibold px-3 py-1 rounded">
                     Reservado
                   </span>
                 )}
-              </div>
 
-              {/* Thumbnails */}
-              {photos.length > 1 && (
-                <div className="flex gap-2 p-3 overflow-x-auto">
-                  {photos.map((photo, index) => (
-                    <button
-                      key={photo.id}
-                      onClick={() => setMainPhotoIndex(index)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
-                        index === mainPhotoIndex
-                          ? 'border-amber-600'
-                          : 'border-transparent hover:border-gray-300'
-                      }`}
-                    >
-                      <img
-                        src={`/api/uploads/${photo.filename}`}
-                        alt={`${item.title} - foto ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
+                {/* Prev/Next arrows */}
+                {photos.length > 1 && (
+                  <>
+                    {mainPhotoIndex > 0 && (
+                      <button
+                        onClick={() => setMainPhotoIndex((i) => i - 1)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                    )}
+                    {mainPhotoIndex < photos.length - 1 && (
+                      <button
+                        onClick={() => setMainPhotoIndex((i) => i + 1)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {/* Dots */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {photos.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setMainPhotoIndex(index)}
+                          className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                            index === mainPhotoIndex
+                              ? 'bg-white'
+                              : 'bg-white/50 hover:bg-white/75'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Counter */}
+                    <span className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                      {mainPhotoIndex + 1} / {photos.length}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Details */}
