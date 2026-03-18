@@ -13,6 +13,13 @@ function formatPrice(price: number): string {
   });
 }
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits.length ? `(${digits}` : '';
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 export default function CartPage() {
   const router = useRouter();
   const [cartIds, setCartIds] = useState<string[]>([]);
@@ -255,19 +262,28 @@ export default function CartPage() {
                     htmlFor="buyer-contact"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Seu contato (telefone ou e-mail)
+                    WhatsApp
                   </label>
                   <input
                     id="buyer-contact"
-                    type="text"
+                    type="tel"
                     required
                     value={buyerContact}
-                    onChange={(e) => setBuyerContact(e.target.value)}
+                    onChange={(e) => setBuyerContact(formatPhone(e.target.value))}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                    placeholder="(11) 99999-9999 ou email@exemplo.com"
+                    placeholder="(11) 99999-9999"
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Disclaimer */}
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-4 mb-6 text-sm text-gray-600">
+              <p className="font-medium text-gray-700 mb-1">Retirada no local</p>
+              <p>
+                Não realizamos entregas. O comprador é responsável por retirar
+                os itens no estúdio em Alphaville - Barueri/SP.
+              </p>
             </div>
 
             {/* Error */}

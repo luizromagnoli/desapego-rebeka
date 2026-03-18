@@ -62,6 +62,9 @@ export default function HomePage() {
           <p className="mt-2 text-gray-600">
             Equipamentos, móveis e acessórios de estúdio fotográfico
           </p>
+          <p className="mt-3 text-sm text-gray-500 bg-gray-50 inline-block px-4 py-2 rounded-md">
+            Retirada no local: Alphaville - Barueri/SP. Não realizamos entregas.
+          </p>
         </div>
       </header>
 
@@ -90,7 +93,7 @@ export default function HomePage() {
             return (
               <div
                 key={item.id}
-                className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-opacity ${
+                className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-opacity cursor-pointer ${
                   isReserved ? 'opacity-60' : ''
                 }`}
               >

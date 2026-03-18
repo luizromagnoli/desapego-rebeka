@@ -57,9 +57,17 @@ export default function ConfirmationPage() {
             </div>
           </div>
 
-          <p className="text-gray-600 text-sm mb-8">
+          <p className="text-gray-600 text-sm mb-6">
             Após o pagamento, entre em contato informando o comprovante.
           </p>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-left mb-8 text-sm text-gray-600">
+            <p className="font-medium text-gray-700 mb-1">Retirada no local</p>
+            <p>
+              Não realizamos entregas. O comprador é responsável por retirar
+              os itens no estúdio em Alphaville - Barueri/SP.
+            </p>
+          </div>
 
           <Link
             href="/"
