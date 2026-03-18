@@ -218,6 +218,29 @@ export default function ItemDetailPage() {
                   </>
                 )}
               </div>
+
+              {/* Thumbnails */}
+              {photos.length > 1 && (
+                <div className="flex gap-2 p-3 overflow-x-auto">
+                  {photos.map((photo, index) => (
+                    <button
+                      key={photo.id}
+                      onClick={() => setMainPhotoIndex(index)}
+                      className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
+                        index === mainPhotoIndex
+                          ? 'border-amber-600'
+                          : 'border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <img
+                        src={`/api/uploads/${photo.filename}`}
+                        alt={`${item.title} - foto ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Details */}
