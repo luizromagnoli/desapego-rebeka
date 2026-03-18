@@ -102,8 +102,8 @@ export default function AdminItensPage() {
       )}
 
       {!loading && !error && items.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white border border-gray-200 rounded overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50 text-left text-gray-600">
                 <th className="px-4 py-3 font-medium">Foto</th>
