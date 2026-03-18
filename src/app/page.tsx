@@ -137,14 +137,14 @@ export default function HomePage() {
 
                 {/* Info */}
                 <div className="p-4">
-                  <Link href={`/item/${item.id}`}>
+                  <Link href={`/item/${item.id}`} className="block cursor-pointer">
                     <h2 className="font-semibold text-gray-800 hover:text-amber-700 transition-colors line-clamp-2">
                       {item.title}
                     </h2>
+                    <p className="mt-1 text-lg font-bold text-amber-700">
+                      {formatPrice(item.price)}
+                    </p>
                   </Link>
-                  <p className="mt-1 text-lg font-bold text-amber-700">
-                    {formatPrice(item.price)}
-                  </p>
 
                   {!isReserved && (
                     <button
