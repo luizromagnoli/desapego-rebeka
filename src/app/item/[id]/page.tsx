@@ -20,10 +20,13 @@ export default function ItemDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [mainPhotoIndex, setMainPhotoIndex] = useState(0);
   const [inCart, setInCart] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     if (params.id) {
-      setInCart(getCart().includes(params.id));
+      const cart = getCart();
+      setInCart(cart.includes(params.id));
+      setCartCount(cart.length);
     }
   }, [params.id]);
 
@@ -48,9 +51,11 @@ export default function ItemDetailPage() {
     if (inCart) {
       removeFromCart(item.id);
       setInCart(false);
+      setCartCount((c) => c - 1);
     } else {
       addToCart(item.id);
       setInCart(true);
+      setCartCount((c) => c + 1);
     }
   }
 
@@ -81,7 +86,7 @@ export default function ItemDetailPage() {
   const mainPhoto = photos[mainPhotoIndex];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -225,6 +230,24 @@ export default function ItemDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Floating cart bar */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <p className="text-sm sm:text-base text-gray-700">
+              <span className="font-semibold">{cartCount}</span>{' '}
+              {cartCount === 1 ? 'item selecionado' : 'itens selecionados'}
+            </p>
+            <Link
+              href="/carrinho"
+              className="bg-amber-600 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition-colors"
+            >
+              Ver carrinho
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

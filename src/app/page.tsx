@@ -93,7 +93,7 @@ export default function HomePage() {
             return (
               <div
                 key={item.id}
-                className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-opacity cursor-pointer ${
+                className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-amber-300 ${
                   isReserved ? 'opacity-60' : ''
                 }`}
               >
