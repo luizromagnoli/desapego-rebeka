@@ -20,7 +20,7 @@ export default function ItemDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [mainPhotoIndex, setMainPhotoIndex] = useState(0);
   const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
-  const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null);
+  const [selectedVariationIds, setSelectedVariationIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setCartVariationIds(getCart());
@@ -34,12 +34,6 @@ export default function ItemDetailPage() {
       })
       .then((data: Item) => {
         setItem(data);
-        // Auto-select the first available variation
-        const vars = data.variations || [];
-        const firstAvailable = vars.find((v) => v.status === 'available');
-        if (firstAvailable) {
-          setSelectedVariationId(firstAvailable.id);
-        }
         setLoading(false);
       })
       .catch((err) => {
@@ -48,14 +42,40 @@ export default function ItemDetailPage() {
       });
   }, [params.id]);
 
-  function handleToggleCart() {
-    if (!selectedVariationId) return;
-    if (cartVariationIds.includes(selectedVariationId)) {
-      removeFromCart(selectedVariationId);
-      setCartVariationIds((prev) => prev.filter((id) => id !== selectedVariationId));
+  function toggleVariationSelection(variationId: string) {
+    setSelectedVariationIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(variationId)) {
+        next.delete(variationId);
+      } else {
+        next.add(variationId);
+      }
+      return next;
+    });
+  }
+
+  function handleAddSelectedToCart() {
+    const toAdd = Array.from(selectedVariationIds).filter(
+      (id) => !cartVariationIds.includes(id)
+    );
+    for (const id of toAdd) {
+      addToCart(id);
+    }
+    setCartVariationIds((prev) => [...prev, ...toAdd]);
+    setSelectedVariationIds(new Set());
+  }
+
+  function handleRemoveFromCart(variationId: string) {
+    removeFromCart(variationId);
+    setCartVariationIds((prev) => prev.filter((id) => id !== variationId));
+  }
+
+  function handleToggleSingleCart(variationId: string) {
+    if (cartVariationIds.includes(variationId)) {
+      handleRemoveFromCart(variationId);
     } else {
-      addToCart(selectedVariationId);
-      setCartVariationIds((prev) => [...prev, selectedVariationId]);
+      addToCart(variationId);
+      setCartVariationIds((prev) => [...prev, variationId]);
     }
   }
 
@@ -83,9 +103,14 @@ export default function ItemDetailPage() {
 
   const variations = item.variations || [];
   const showVariationSelector = variations.length > 1 || (variations.length === 1 && variations[0].name !== 'Padrão');
+  const isSingleDefault = variations.length === 1 && variations[0].name === 'Padrão';
   const allUnavailable = variations.every((v) => v.status !== 'available');
-  const selectedVariation = variations.find((v) => v.id === selectedVariationId);
-  const isInCart = selectedVariationId ? cartVariationIds.includes(selectedVariationId) : false;
+  const availableNotInCart = variations.filter(
+    (v) => v.status === 'available' && !cartVariationIds.includes(v.id)
+  );
+  const selectedNotInCart = Array.from(selectedVariationIds).filter(
+    (id) => !cartVariationIds.includes(id)
+  );
 
   const photos = item.photos || [];
   const mainPhoto = photos[mainPhotoIndex];
@@ -267,7 +292,7 @@ export default function ItemDetailPage() {
                 </div>
               )}
 
-              {/* Variation selector */}
+              {/* Variation selector - multi-select */}
               {showVariationSelector && (
                 <div className="mt-6">
                   <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
@@ -276,45 +301,69 @@ export default function ItemDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {variations.map((v: ItemVariation) => {
                       const isAvailable = v.status === 'available';
-                      const isActive = v.id === selectedVariationId;
-                      const inCartAlready = cartVariationIds.includes(v.id);
+                      const inCart = cartVariationIds.includes(v.id);
+                      const isSelected = selectedVariationIds.has(v.id);
 
                       return (
                         <button
                           key={v.id}
-                          disabled={!isAvailable}
+                          disabled={!isAvailable || inCart}
                           onClick={() => {
-                            if (isAvailable) setSelectedVariationId(v.id);
+                            if (isAvailable && !inCart) toggleVariationSelection(v.id);
                           }}
                           className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                             !isAvailable
                               ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through'
-                              : isActive
+                              : inCart
+                              ? 'bg-green-50 text-green-700 border-green-300 cursor-default'
+                              : isSelected
                               ? 'bg-amber-100 text-amber-800 border-amber-400'
-                              : 'bg-white text-gray-700 border-gray-300 hover:border-amber-400'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-amber-400 cursor-pointer'
                           }`}
                         >
                           {v.name}
-                          {inCartAlready && isAvailable && ' (no carrinho)'}
+                          {inCart && ' ✓'}
                           {v.status === 'reserved' && ' (reservado)'}
                           {v.status === 'sold' && ' (vendido)'}
                         </button>
                       );
                     })}
                   </div>
+                  {availableNotInCart.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedVariationIds(new Set(availableNotInCart.map((v) => v.id)));
+                      }}
+                      className="mt-2 text-xs text-amber-700 hover:text-amber-800 font-medium"
+                    >
+                      Selecionar todas disponíveis
+                    </button>
+                  )}
                 </div>
               )}
 
-              {!allUnavailable && selectedVariation && selectedVariation.status === 'available' && (
+              {/* Add to cart - multi-variation */}
+              {showVariationSelector && selectedNotInCart.length > 0 && (
                 <button
-                  onClick={handleToggleCart}
+                  onClick={handleAddSelectedToCart}
+                  className="mt-6 w-full py-3 px-6 rounded-md font-medium transition-colors bg-amber-600 text-white hover:bg-amber-700"
+                >
+                  Adicionar {selectedNotInCart.length} {selectedNotInCart.length === 1 ? 'item' : 'itens'} ao carrinho
+                </button>
+              )}
+
+              {/* Single default variation - simple toggle */}
+              {isSingleDefault && variations[0]?.status === 'available' && (
+                <button
+                  onClick={() => handleToggleSingleCart(variations[0].id)}
                   className={`mt-8 w-full py-3 px-6 rounded-md font-medium transition-colors ${
-                    isInCart
+                    cartVariationIds.includes(variations[0].id)
                       ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
                       : 'bg-amber-600 text-white hover:bg-amber-700'
                   }`}
                 >
-                  {isInCart ? 'Remover do carrinho' : 'Adicionar ao carrinho'}
+                  {cartVariationIds.includes(variations[0].id) ? 'Remover do carrinho' : 'Adicionar ao carrinho'}
                 </button>
               )}
 
