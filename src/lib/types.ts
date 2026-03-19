@@ -5,6 +5,15 @@ export interface ItemPhoto {
   sort_order: number;
 }
 
+export interface ItemVariation {
+  id: string;
+  item_id: string;
+  name: string;
+  status: 'available' | 'reserved' | 'sold';
+  buyer_name: string | null;
+  buyer_contact: string | null;
+}
+
 export interface Item {
   id: string;
   title: string;
@@ -15,4 +24,5 @@ export interface Item {
   buyer_contact: string | null;
   created_at: string;
   photos: ItemPhoto[];
+  variations: ItemVariation[];
 }

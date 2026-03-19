@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import type { Item } from '@/lib/types';
+import type { Item, ItemVariation } from '@/lib/types';
 import { getCart, addToCart, removeFromCart } from '@/lib/cart';
 
 function formatPrice(price: number): string {
@@ -19,16 +19,12 @@ export default function ItemDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mainPhotoIndex, setMainPhotoIndex] = useState(0);
-  const [inCart, setInCart] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
+  const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
+  const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (params.id) {
-      const cart = getCart();
-      setInCart(cart.includes(params.id));
-      setCartCount(cart.length);
-    }
-  }, [params.id]);
+    setCartVariationIds(getCart());
+  }, []);
 
   useEffect(() => {
     fetch(`/api/items/${params.id}`)
@@ -38,6 +34,12 @@ export default function ItemDetailPage() {
       })
       .then((data: Item) => {
         setItem(data);
+        // Auto-select the first available variation
+        const vars = data.variations || [];
+        const firstAvailable = vars.find((v) => v.status === 'available');
+        if (firstAvailable) {
+          setSelectedVariationId(firstAvailable.id);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -47,15 +49,13 @@ export default function ItemDetailPage() {
   }, [params.id]);
 
   function handleToggleCart() {
-    if (!item) return;
-    if (inCart) {
-      removeFromCart(item.id);
-      setInCart(false);
-      setCartCount((c) => c - 1);
+    if (!selectedVariationId) return;
+    if (cartVariationIds.includes(selectedVariationId)) {
+      removeFromCart(selectedVariationId);
+      setCartVariationIds((prev) => prev.filter((id) => id !== selectedVariationId));
     } else {
-      addToCart(item.id);
-      setInCart(true);
-      setCartCount((c) => c + 1);
+      addToCart(selectedVariationId);
+      setCartVariationIds((prev) => [...prev, selectedVariationId]);
     }
   }
 
@@ -81,7 +81,12 @@ export default function ItemDetailPage() {
     );
   }
 
-  const isReserved = item.status === 'reserved';
+  const variations = item.variations || [];
+  const showVariationSelector = variations.length > 1 || (variations.length === 1 && variations[0].name !== 'Padrão');
+  const allUnavailable = variations.every((v) => v.status !== 'available');
+  const selectedVariation = variations.find((v) => v.id === selectedVariationId);
+  const isInCart = selectedVariationId ? cartVariationIds.includes(selectedVariationId) : false;
+
   const photos = item.photos || [];
   const mainPhoto = photos[mainPhotoIndex];
 
@@ -166,7 +171,7 @@ export default function ItemDetailPage() {
                   </div>
                 )}
 
-                {isReserved && (
+                {allUnavailable && (
                   <span className="absolute top-3 right-3 bg-amber-600 text-white text-sm font-semibold px-3 py-1 rounded">
                     Reservado
                   </span>
@@ -262,20 +267,58 @@ export default function ItemDetailPage() {
                 </div>
               )}
 
-              {!isReserved && (
+              {/* Variation selector */}
+              {showVariationSelector && (
+                <div className="mt-6">
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    Opções
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {variations.map((v: ItemVariation) => {
+                      const isAvailable = v.status === 'available';
+                      const isActive = v.id === selectedVariationId;
+                      const inCartAlready = cartVariationIds.includes(v.id);
+
+                      return (
+                        <button
+                          key={v.id}
+                          disabled={!isAvailable}
+                          onClick={() => {
+                            if (isAvailable) setSelectedVariationId(v.id);
+                          }}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                            !isAvailable
+                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through'
+                              : isActive
+                              ? 'bg-amber-100 text-amber-800 border-amber-400'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-amber-400'
+                          }`}
+                        >
+                          {v.name}
+                          {inCartAlready && isAvailable && ' (no carrinho)'}
+                          {v.status === 'reserved' && ' (reservado)'}
+                          {v.status === 'sold' && ' (vendido)'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {!allUnavailable && selectedVariation && selectedVariation.status === 'available' && (
                 <button
                   onClick={handleToggleCart}
                   className={`mt-8 w-full py-3 px-6 rounded-md font-medium transition-colors ${
-                    inCart
+                    isInCart
                       ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
                       : 'bg-amber-600 text-white hover:bg-amber-700'
                   }`}
                 >
-                  {inCart ? 'Remover do carrinho' : 'Adicionar ao carrinho'}
+                  {isInCart ? 'Remover do carrinho' : 'Adicionar ao carrinho'}
                 </button>
               )}
 
-              {isReserved && (
+              {allUnavailable && (
                 <div className="mt-8 bg-amber-50 border border-amber-200 rounded-md p-4 text-center">
                   <p className="text-amber-800 font-medium">
                     Este item já está reservado.
@@ -297,12 +340,12 @@ export default function ItemDetailPage() {
       </main>
 
       {/* Floating cart bar */}
-      {cartCount > 0 && (
+      {cartVariationIds.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <p className="text-sm sm:text-base text-gray-700">
-              <span className="font-semibold">{cartCount}</span>{' '}
-              {cartCount === 1 ? 'item selecionado' : 'itens selecionados'}
+              <span className="font-semibold">{cartVariationIds.length}</span>{' '}
+              {cartVariationIds.length === 1 ? 'item selecionado' : 'itens selecionados'}
             </p>
             <Link
               href="/carrinho"

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import type { Item } from '@/lib/types';
+import type { Item, ItemVariation } from '@/lib/types';
 
 function getHeaders(): HeadersInit {
   const pw = sessionStorage.getItem('adminPassword') ?? '';
@@ -13,7 +13,7 @@ function formatPrice(price: number): string {
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function statusLabel(status: Item['status']): { text: string; className: string } {
+function statusLabel(status: string): { text: string; className: string } {
   switch (status) {
     case 'available':
       return { text: 'Disponível', className: 'bg-green-100 text-green-800' };
@@ -21,6 +21,8 @@ function statusLabel(status: Item['status']): { text: string; className: string 
       return { text: 'Reservado', className: 'bg-yellow-100 text-yellow-800' };
     case 'sold':
       return { text: 'Vendido', className: 'bg-gray-100 text-gray-600' };
+    default:
+      return { text: status, className: 'bg-gray-100 text-gray-600' };
   }
 }
 
@@ -28,6 +30,7 @@ export default function AdminItensPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -62,12 +65,12 @@ export default function AdminItensPage() {
     }
   }
 
-  async function handleStatusChange(itemId: string, newStatus: 'available' | 'sold') {
+  async function handleVariationStatusChange(itemId: string, variationId: string, newStatus: 'available' | 'sold') {
     try {
       const res = await fetch(`/api/items/${itemId}/status`, {
         method: 'PUT',
         headers: { ...getHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ variationId, status: newStatus }),
       });
       if (!res.ok) throw new Error('Erro ao atualizar status');
       fetchItems();
@@ -76,10 +79,31 @@ export default function AdminItensPage() {
     }
   }
 
+  function toggleExpand(itemId: string) {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  }
+
   function thumbnailUrl(item: Item): string | null {
     if (item.photos.length === 0) return null;
     const sorted = [...item.photos].sort((a, b) => a.sort_order - b.sort_order);
     return `/api/uploads/${sorted[0].filename}`;
+  }
+
+  function hasMultipleVariations(item: Item): boolean {
+    return (item.variations || []).length > 1;
+  }
+
+  function isSingleDefault(item: Item): boolean {
+    const vars = item.variations || [];
+    return vars.length <= 1;
   }
 
   return (
@@ -110,7 +134,7 @@ export default function AdminItensPage() {
                 <th className="px-4 py-3 font-medium">Título</th>
                 <th className="px-4 py-3 font-medium">Preço</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Comprador</th>
+                <th className="px-4 py-3 font-medium">Info</th>
                 <th className="px-4 py-3 font-medium text-right">Ações</th>
               </tr>
             </thead>
@@ -118,10 +142,16 @@ export default function AdminItensPage() {
               {items.map((item) => {
                 const thumb = thumbnailUrl(item);
                 const badge = statusLabel(item.status);
+                const multiVariation = hasMultipleVariations(item);
+                const singleDefault = isSingleDefault(item);
+                const isExpanded = expandedItems.has(item.id);
+                const variations = item.variations || [];
+                const singleVariation = singleDefault ? variations[0] : null;
+
                 return (
                   <tr
                     key={item.id}
-                    className="border-b border-gray-100 last:border-b-0"
+                    className="border-b border-gray-100 last:border-b-0 align-top"
                   >
                     <td className="px-4 py-3">
                       {thumb ? (
@@ -138,6 +168,11 @@ export default function AdminItensPage() {
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-800">
                       {item.title}
+                      {multiVariation && (
+                        <span className="block text-xs text-gray-500 mt-0.5">
+                          {variations.length} variações
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {formatPrice(item.price)}
@@ -150,14 +185,72 @@ export default function AdminItensPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs">
-                      {item.status === 'reserved' && item.buyer_name && (
+                      {singleDefault && singleVariation && singleVariation.status === 'reserved' && singleVariation.buyer_name && (
                         <div>
-                          <div>{item.buyer_name}</div>
-                          {item.buyer_contact && (
+                          <div>{singleVariation.buyer_name}</div>
+                          {singleVariation.buyer_contact && (
                             <div className="text-gray-400">
-                              {item.buyer_contact}
+                              {singleVariation.buyer_contact}
                             </div>
                           )}
+                        </div>
+                      )}
+                      {multiVariation && !isExpanded && (
+                        <button
+                          onClick={() => toggleExpand(item.id)}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                        >
+                          Ver variações
+                        </button>
+                      )}
+                      {multiVariation && isExpanded && (
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => toggleExpand(item.id)}
+                            className="text-blue-600 hover:text-blue-800 text-xs font-medium mb-1"
+                          >
+                            Ocultar variações
+                          </button>
+                          {variations.map((v: ItemVariation) => {
+                            const vBadge = statusLabel(v.status);
+                            return (
+                              <div key={v.id} className="flex items-center gap-2 flex-wrap border-t border-gray-50 pt-1">
+                                <span className="font-medium text-gray-700">{v.name}</span>
+                                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${vBadge.className}`}>
+                                  {vBadge.text}
+                                </span>
+                                {v.buyer_name && (
+                                  <span className="text-gray-400">{v.buyer_name}</span>
+                                )}
+                                <div className="flex gap-1 ml-auto">
+                                  {v.status === 'reserved' && (
+                                    <>
+                                      <button
+                                        onClick={() => handleVariationStatusChange(item.id, v.id, 'sold')}
+                                        className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded transition-colors"
+                                      >
+                                        Vendido
+                                      </button>
+                                      <button
+                                        onClick={() => handleVariationStatusChange(item.id, v.id, 'available')}
+                                        className="text-[10px] bg-green-50 hover:bg-green-100 text-green-700 px-1.5 py-0.5 rounded transition-colors"
+                                      >
+                                        Liberar
+                                      </button>
+                                    </>
+                                  )}
+                                  {v.status === 'sold' && (
+                                    <button
+                                      onClick={() => handleVariationStatusChange(item.id, v.id, 'available')}
+                                      className="text-[10px] bg-green-50 hover:bg-green-100 text-green-700 px-1.5 py-0.5 rounded transition-colors"
+                                    >
+                                      Liberar
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </td>
@@ -175,31 +268,26 @@ export default function AdminItensPage() {
                         >
                           Excluir
                         </button>
-                        {item.status === 'reserved' && (
+                        {/* For single-variation items, show quick status buttons */}
+                        {singleDefault && singleVariation && singleVariation.status === 'reserved' && (
                           <>
                             <button
-                              onClick={() =>
-                                handleStatusChange(item.id, 'sold')
-                              }
+                              onClick={() => handleVariationStatusChange(item.id, singleVariation.id, 'sold')}
                               className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition-colors"
                             >
                               Marcar como vendido
                             </button>
                             <button
-                              onClick={() =>
-                                handleStatusChange(item.id, 'available')
-                              }
+                              onClick={() => handleVariationStatusChange(item.id, singleVariation.id, 'available')}
                               className="text-xs bg-green-50 hover:bg-green-100 text-green-700 px-2 py-1 rounded transition-colors"
                             >
                               Liberar
                             </button>
                           </>
                         )}
-                        {item.status === 'sold' && (
+                        {singleDefault && singleVariation && singleVariation.status === 'sold' && (
                           <button
-                            onClick={() =>
-                              handleStatusChange(item.id, 'available')
-                            }
+                            onClick={() => handleVariationStatusChange(item.id, singleVariation.id, 'available')}
                             className="text-xs bg-green-50 hover:bg-green-100 text-green-700 px-2 py-1 rounded transition-colors"
                           >
                             Liberar

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import type { Item } from '@/lib/types';
+import type { Item, ItemVariation } from '@/lib/types';
 
 function getHeaders(): HeadersInit {
   const pw = sessionStorage.getItem('adminPassword') ?? '';
@@ -11,6 +11,11 @@ function getHeaders(): HeadersInit {
 
 function formatPrice(price: number): string {
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+interface ReservedEntry {
+  item: Item;
+  variation: ItemVariation;
 }
 
 export default function ReservadosPage() {
@@ -25,7 +30,7 @@ export default function ReservadosPage() {
       const res = await fetch('/api/items?all=true', { headers: getHeaders() });
       if (!res.ok) throw new Error('Erro ao carregar itens');
       const data: Item[] = await res.json();
-      setItems(data.filter((i) => i.status === 'reserved'));
+      setItems(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
@@ -37,12 +42,12 @@ export default function ReservadosPage() {
     fetchItems();
   }, [fetchItems]);
 
-  async function handleStatusChange(itemId: string, newStatus: 'available' | 'sold') {
+  async function handleVariationStatusChange(itemId: string, variationId: string, newStatus: 'available' | 'sold') {
     try {
       const res = await fetch(`/api/items/${itemId}/status`, {
         method: 'PUT',
         headers: { ...getHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ variationId, status: newStatus }),
       });
       if (!res.ok) throw new Error('Erro ao atualizar status');
       fetchItems();
@@ -51,12 +56,22 @@ export default function ReservadosPage() {
     }
   }
 
-  // Group by buyer
-  const buyerGroups = new Map<string, Item[]>();
+  // Collect all reserved variations
+  const reservedEntries: ReservedEntry[] = [];
   for (const item of items) {
-    const key = `${item.buyer_name}|||${item.buyer_contact}`;
+    for (const v of (item.variations || [])) {
+      if (v.status === 'reserved') {
+        reservedEntries.push({ item, variation: v });
+      }
+    }
+  }
+
+  // Group by buyer
+  const buyerGroups = new Map<string, ReservedEntry[]>();
+  for (const entry of reservedEntries) {
+    const key = `${entry.variation.buyer_name}|||${entry.variation.buyer_contact}`;
     const list = buyerGroups.get(key) ?? [];
-    list.push(item);
+    list.push(entry);
     buyerGroups.set(key, list);
   }
 
@@ -67,15 +82,15 @@ export default function ReservadosPage() {
       {loading && <p className="text-gray-500">Carregando...</p>}
       {error && <p className="text-red-600">{error}</p>}
 
-      {!loading && !error && items.length === 0 && (
+      {!loading && !error && reservedEntries.length === 0 && (
         <p className="text-gray-500">Nenhum item reservado.</p>
       )}
 
-      {!loading && !error && items.length > 0 && (
+      {!loading && !error && reservedEntries.length > 0 && (
         <div className="space-y-6">
-          {Array.from(buyerGroups.entries()).map(([key, buyerItems]) => {
+          {Array.from(buyerGroups.entries()).map(([key, entries]) => {
             const [name, contact] = key.split('|||');
-            const total = buyerItems.reduce((sum, i) => sum + i.price, 0);
+            const total = entries.reduce((sum, e) => sum + e.item.price, 0);
 
             return (
               <div key={key} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -88,20 +103,26 @@ export default function ReservadosPage() {
                     )}
                   </div>
                   <div className="text-sm">
-                    <span className="text-gray-500">{buyerItems.length} {buyerItems.length === 1 ? 'item' : 'itens'}</span>
+                    <span className="text-gray-500">{entries.length} {entries.length === 1 ? 'item' : 'itens'}</span>
                     <span className="font-bold text-amber-700 ml-3">{formatPrice(total)}</span>
                   </div>
                 </div>
 
                 {/* Items */}
                 <div className="divide-y divide-gray-100">
-                  {buyerItems.map((item) => {
+                  {entries.map((entry) => {
+                    const { item, variation } = entry;
                     const thumb = item.photos.length > 0
                       ? `/api/uploads/${[...item.photos].sort((a, b) => a.sort_order - b.sort_order)[0].filename}`
                       : null;
 
+                    const showVariationName = variation.name !== 'Padrão' || (item.variations || []).length > 1;
+                    const displayTitle = showVariationName
+                      ? `${item.title} - ${variation.name}`
+                      : item.title;
+
                     return (
-                      <div key={item.id} className="px-4 py-3 flex items-center gap-4">
+                      <div key={variation.id} className="px-4 py-3 flex items-center gap-4">
                         {thumb ? (
                           <img src={thumb} alt={item.title} className="w-12 h-12 object-cover rounded flex-shrink-0" />
                         ) : (
@@ -112,20 +133,20 @@ export default function ReservadosPage() {
 
                         <div className="flex-1 min-w-0">
                           <Link href={`/admin/itens/${item.id}/editar`} className="font-medium text-gray-800 hover:text-blue-600 text-sm truncate block">
-                            {item.title}
+                            {displayTitle}
                           </Link>
                           <p className="text-sm text-amber-700 font-semibold">{formatPrice(item.price)}</p>
                         </div>
 
                         <div className="flex gap-2 flex-shrink-0">
                           <button
-                            onClick={() => handleStatusChange(item.id, 'sold')}
+                            onClick={() => handleVariationStatusChange(item.id, variation.id, 'sold')}
                             className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition-colors"
                           >
                             Vendido
                           </button>
                           <button
-                            onClick={() => handleStatusChange(item.id, 'available')}
+                            onClick={() => handleVariationStatusChange(item.id, variation.id, 'available')}
                             className="text-xs bg-green-50 hover:bg-green-100 text-green-700 px-2 py-1 rounded transition-colors"
                           >
                             Liberar

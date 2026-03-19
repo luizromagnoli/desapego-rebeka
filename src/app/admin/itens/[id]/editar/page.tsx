@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import type { Item, ItemPhoto } from '@/lib/types';
+import type { Item, ItemPhoto, ItemVariation } from '@/lib/types';
 
 function getHeaders(): HeadersInit {
   const pw = sessionStorage.getItem('adminPassword') ?? '';
@@ -22,6 +22,13 @@ interface NewPhotoItem {
 
 type DraggablePhoto = PhotoItem | NewPhotoItem;
 
+interface VariationEdit {
+  id?: string;
+  name: string;
+  status?: string;
+  buyer_name?: string | null;
+}
+
 export default function EditarItemPage() {
   const router = useRouter();
   const params = useParams();
@@ -33,6 +40,7 @@ export default function EditarItemPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [allPhotos, setAllPhotos] = useState<DraggablePhoto[]>([]);
+  const [variations, setVariations] = useState<VariationEdit[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -49,6 +57,14 @@ export default function EditarItemPage() {
       setPrice(String(item.price));
       const sorted = [...item.photos].sort((a, b) => a.sort_order - b.sort_order);
       setAllPhotos(sorted.map((photo) => ({ type: 'existing', photo })));
+      setVariations(
+        (item.variations || []).map((v: ItemVariation) => ({
+          id: v.id,
+          name: v.name,
+          status: v.status,
+          buyer_name: v.buyer_name,
+        }))
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
@@ -130,6 +146,26 @@ export default function EditarItemPage() {
     return photo.url;
   }
 
+  function addVariation() {
+    setVariations((prev) => [...prev, { name: '' }]);
+  }
+
+  function updateVariationName(index: number, name: string) {
+    setVariations((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, name } : v))
+    );
+  }
+
+  function removeVariation(index: number) {
+    const v = variations[index];
+    if (v.id && (v.status === 'reserved' || v.buyer_name)) {
+      if (!confirm('Esta variação possui reserva. Deseja realmente removê-la?')) {
+        return;
+      }
+    }
+    setVariations((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -143,12 +179,28 @@ export default function EditarItemPage() {
       return;
     }
 
+    // Validate variation names
+    if (variations.length > 0) {
+      const hasEmpty = variations.some((v) => !v.name.trim());
+      if (hasEmpty) {
+        setError('Preencha o nome de todas as variações ou remova as vazias');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const formData = new FormData();
       formData.append('title', title.trim());
       formData.append('description', description.trim());
       formData.append('price', price);
+
+      // Send variations
+      const variationsPayload = variations.map((v) => ({
+        id: v.id,
+        name: v.name.trim(),
+      }));
+      formData.append('variations', JSON.stringify(variationsPayload));
 
       // Send the photo order: existing photo IDs and new files in order
       const photoOrder: string[] = [];
@@ -253,6 +305,49 @@ export default function EditarItemPage() {
             onChange={(e) => setPrice(e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        {/* Variations */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Variações
+          </label>
+          {variations.length > 0 && (
+            <div className="space-y-2 mb-2">
+              {variations.map((v, i) => (
+                <div key={v.id ?? `new-${i}`} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={v.name}
+                    onChange={(e) => updateVariationName(i, e.target.value)}
+                    placeholder="Nome da variação"
+                    className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {v.status && v.status !== 'available' && (
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      v.status === 'reserved' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {v.status === 'reserved' ? 'Reservado' : 'Vendido'}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeVariation(i)}
+                    className="text-red-500 hover:text-red-700 text-sm px-2 py-1"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={addVariation}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            + Adicionar variação
+          </button>
         </div>
 
         {/* All photos - draggable */}

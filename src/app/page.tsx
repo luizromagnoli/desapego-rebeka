@@ -16,10 +16,10 @@ export default function HomePage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
 
   useEffect(() => {
-    setSelectedIds(getCart());
+    setCartVariationIds(getCart());
   }, []);
 
   useEffect(() => {
@@ -38,18 +38,22 @@ export default function HomePage() {
       });
   }, []);
 
-  function toggleItem(itemId: string) {
-    if (selectedIds.includes(itemId)) {
-      removeFromCart(itemId);
-      setSelectedIds((prev) => prev.filter((id) => id !== itemId));
+  function toggleVariation(variationId: string) {
+    if (cartVariationIds.includes(variationId)) {
+      removeFromCart(variationId);
+      setCartVariationIds((prev) => prev.filter((id) => id !== variationId));
     } else {
-      addToCart(itemId);
-      setSelectedIds((prev) => [...prev, itemId]);
+      addToCart(variationId);
+      setCartVariationIds((prev) => [...prev, variationId]);
     }
   }
 
-  const selectedItems = items.filter((item) => selectedIds.includes(item.id));
-  const totalPrice = selectedItems.reduce((sum, item) => sum + item.price, 0);
+  // Compute total price from cart
+  const cartTotal = items.reduce((sum, item) => {
+    const vars = item.variations || [];
+    const matchCount = vars.filter((v) => cartVariationIds.includes(v.id)).length;
+    return sum + item.price * matchCount;
+  }, 0);
 
   return (
     <div className="min-h-screen pb-24">
@@ -86,15 +90,21 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {items.map((item) => {
-            const isReserved = item.status === 'reserved';
-            const isSelected = selectedIds.includes(item.id);
+            const variations = item.variations || [];
+            const availableVariations = variations.filter((v) => v.status === 'available');
+            const allUnavailable = availableVariations.length === 0;
+            const hasMultipleVariations = variations.length > 1;
             const firstPhoto = item.photos?.[0];
+
+            // For single-variation items, check if it's in cart
+            const singleVariation = !hasMultipleVariations && variations.length === 1 ? variations[0] : null;
+            const isSelected = singleVariation ? cartVariationIds.includes(singleVariation.id) : false;
 
             return (
               <div
                 key={item.id}
                 className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-amber-300 ${
-                  isReserved ? 'opacity-60' : ''
+                  allUnavailable ? 'opacity-60' : ''
                 }`}
               >
                 {/* Photo / Placeholder */}
@@ -128,7 +138,7 @@ export default function HomePage() {
                       </svg>
                     </div>
                   )}
-                  {isReserved && (
+                  {allUnavailable && (
                     <span className="absolute top-2 right-2 bg-amber-600 text-white text-xs font-semibold px-2 py-1 rounded">
                       Reservado
                     </span>
@@ -144,11 +154,17 @@ export default function HomePage() {
                     <p className="mt-1 text-lg font-bold text-amber-700">
                       {formatPrice(item.price)}
                     </p>
+                    {hasMultipleVariations && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {availableVariations.length} de {variations.length} disponíveis
+                      </p>
+                    )}
                   </Link>
 
-                  {!isReserved && (
+                  {/* For single-variation items, show select button directly */}
+                  {!hasMultipleVariations && singleVariation && singleVariation.status === 'available' && (
                     <button
-                      onClick={() => toggleItem(item.id)}
+                      onClick={() => toggleVariation(singleVariation.id)}
                       className={`mt-3 w-full py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                         isSelected
                           ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
@@ -158,6 +174,16 @@ export default function HomePage() {
                       {isSelected ? 'Selecionado' : 'Selecionar'}
                     </button>
                   )}
+
+                  {/* For multi-variation items, link to detail page */}
+                  {hasMultipleVariations && availableVariations.length > 0 && (
+                    <Link
+                      href={`/item/${item.id}`}
+                      className="mt-3 w-full py-2 px-4 rounded-md text-sm font-medium transition-colors bg-amber-600 text-white hover:bg-amber-700 block text-center"
+                    >
+                      Ver opções
+                    </Link>
+                  )}
                 </div>
               </div>
             );
@@ -166,15 +192,15 @@ export default function HomePage() {
       </main>
 
       {/* Floating cart bar */}
-      {selectedIds.length > 0 && (
+      {cartVariationIds.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <p className="text-sm sm:text-base text-gray-700">
-              <span className="font-semibold">{selectedIds.length}</span>{' '}
-              {selectedIds.length === 1 ? 'item selecionado' : 'itens selecionados'}{' '}
+              <span className="font-semibold">{cartVariationIds.length}</span>{' '}
+              {cartVariationIds.length === 1 ? 'item selecionado' : 'itens selecionados'}{' '}
               &mdash;{' '}
               <span className="font-bold text-amber-700">
-                {formatPrice(totalPrice)}
+                {formatPrice(cartTotal)}
               </span>
             </p>
             <Link

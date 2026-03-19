@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Item } from '@/lib/types';
+import type { Item, ItemVariation } from '@/lib/types';
 import { getCart, removeFromCart } from '@/lib/cart';
 
 function formatPrice(price: number): string {
@@ -20,9 +20,14 @@ function formatPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+interface CartEntry {
+  item: Item;
+  variation: ItemVariation;
+}
+
 export default function CartPage() {
   const router = useRouter();
-  const [cartIds, setCartIds] = useState<string[]>([]);
+  const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [buyerName, setBuyerName] = useState('');
@@ -32,9 +37,9 @@ export default function CartPage() {
 
   useEffect(() => {
     const ids = getCart();
-    setCartIds(ids);
+    setCartVariationIds(ids);
 
-    fetch('/api/items')
+    fetch('/api/items?all=true')
       .then((res) => {
         if (!res.ok) throw new Error('Erro ao carregar itens');
         return res.json();
@@ -48,19 +53,30 @@ export default function CartPage() {
       });
   }, []);
 
-  function handleRemove(itemId: string) {
-    removeFromCart(itemId);
-    setCartIds((prev) => prev.filter((id) => id !== itemId));
+  function handleRemove(variationId: string) {
+    removeFromCart(variationId);
+    setCartVariationIds((prev) => prev.filter((id) => id !== variationId));
   }
 
-  const cartItems = items.filter((item) => cartIds.includes(item.id));
-  const totalPrice = cartItems.reduce((sum, item) => sum + item.price, 0);
+  // Build cart entries: match variation IDs to items
+  const cartEntries: CartEntry[] = [];
+  for (const vId of cartVariationIds) {
+    for (const item of items) {
+      const variation = (item.variations || []).find((v) => v.id === vId);
+      if (variation) {
+        cartEntries.push({ item, variation });
+        break;
+      }
+    }
+  }
+
+  const totalPrice = cartEntries.reduce((sum, entry) => sum + entry.item.price, 0);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (cartItems.length === 0) return;
+    if (cartEntries.length === 0) return;
     if (!buyerName.trim() || !buyerContact.trim()) return;
 
     setSubmitting(true);
@@ -70,7 +86,7 @@ export default function CartPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          itemIds: cartIds,
+          variationIds: cartVariationIds,
           buyerName: buyerName.trim(),
           buyerContact: buyerContact.trim(),
         }),
@@ -78,12 +94,9 @@ export default function CartPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        if (data.unavailableItems && data.unavailableItems.length > 0) {
-          const names = data.unavailableItems
-            .map((i: { title: string }) => i.title)
-            .join(', ');
+        if (data.unavailable && data.unavailable.length > 0) {
           setErrorMessage(
-            `Os seguintes itens já foram reservados e não estão mais disponíveis: ${names}`
+            'Alguns itens já foram reservados e não estão mais disponíveis. Remova-os do carrinho e tente novamente.'
           );
         } else {
           setErrorMessage(data.error || 'Erro ao processar a reserva.');
@@ -137,7 +150,7 @@ export default function CartPage() {
       <main className="max-w-3xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Carrinho</h1>
 
-        {cartItems.length === 0 ? (
+        {cartEntries.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 mb-4">Seu carrinho está vazio.</p>
             <Link
@@ -151,11 +164,17 @@ export default function CartPage() {
           <form onSubmit={handleSubmit}>
             {/* Item list */}
             <div className="space-y-3 mb-8">
-              {cartItems.map((item) => {
+              {cartEntries.map((entry) => {
+                const { item, variation } = entry;
                 const firstPhoto = item.photos?.[0];
+                const showVariationName = variation.name !== 'Padrão' || (item.variations || []).length > 1;
+                const displayTitle = showVariationName
+                  ? `${item.title} - ${variation.name}`
+                  : item.title;
+
                 return (
                   <div
-                    key={item.id}
+                    key={variation.id}
                     className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex items-center gap-4"
                   >
                     {firstPhoto ? (
@@ -190,7 +209,7 @@ export default function CartPage() {
 
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-gray-800 truncate">
-                        {item.title}
+                        {displayTitle}
                       </h3>
                       <p className="text-amber-700 font-semibold">
                         {formatPrice(item.price)}
@@ -199,7 +218,7 @@ export default function CartPage() {
 
                     <button
                       type="button"
-                      onClick={() => handleRemove(item.id)}
+                      onClick={() => handleRemove(variation.id)}
                       className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
                       title="Remover"
                     >
@@ -297,7 +316,7 @@ export default function CartPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={submitting || cartItems.length === 0}
+              disabled={submitting || cartEntries.length === 0}
               className="w-full bg-amber-600 text-white py-3 px-6 rounded-md font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Processando...' : 'Confirmar reserva'}

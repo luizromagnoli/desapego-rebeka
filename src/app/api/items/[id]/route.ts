@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getItem, updateItem, deleteItem, addPhotos, reorderPhotos } from "@/lib/items";
+import { getItem, updateItem, deleteItem, addPhotos, reorderPhotos, syncItemVariations } from "@/lib/items";
 import { savePhotos } from "@/lib/upload";
 import { isAdmin, unauthorizedResponse } from "@/lib/auth";
 
@@ -55,6 +55,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   updateItem(id, updateData);
 
+  // Handle variations update
+  const variationsRaw = formData.get("variations");
+  if (typeof variationsRaw === "string" && variationsRaw.trim()) {
+    try {
+      const parsed = JSON.parse(variationsRaw) as { id?: string; name: string }[];
+      if (Array.isArray(parsed)) {
+        syncItemVariations(id, parsed);
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
   const files = formData.getAll("files") as File[];
   let newFilenames: string[] = [];
   if (files.length > 0 && files[0].size > 0) {
@@ -65,7 +78,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   if (typeof photoOrderRaw === "string") {
     const photoOrder = JSON.parse(photoOrderRaw) as string[];
     // Build final ordered list: existing photo IDs keep their ID, "new:N" maps to new filenames
-    const orderedExistingIds: string[] = [];
     const orderedNewFilenames: string[] = [];
     const finalOrder: { type: "existing" | "new"; value: string }[] = [];
 
@@ -78,7 +90,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       } else {
         finalOrder.push({ type: "existing", value: entry });
-        orderedExistingIds.push(entry);
       }
     }
 

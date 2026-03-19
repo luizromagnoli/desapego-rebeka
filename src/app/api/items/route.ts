@@ -38,7 +38,20 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Preço inválido" }, { status: 400 });
   }
 
-  const id = createItem({ title, description, price });
+  let variations: string[] | undefined;
+  const variationsRaw = formData.get("variations");
+  if (typeof variationsRaw === "string" && variationsRaw.trim()) {
+    try {
+      const parsed = JSON.parse(variationsRaw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        variations = parsed.filter((v: unknown) => typeof v === "string" && v.trim());
+      }
+    } catch {
+      // ignore parse errors, will use default
+    }
+  }
+
+  const id = createItem({ title, description, price, variations });
 
   const files = formData.getAll("files") as File[];
   if (files.length > 0 && files[0].size > 0) {
