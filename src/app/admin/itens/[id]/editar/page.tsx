@@ -109,6 +109,16 @@ export default function EditarItemPage() {
     setAllPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function setAsCover(index: number) {
+    if (index === 0) return;
+    setAllPhotos((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(index, 1);
+      updated.unshift(moved);
+      return updated;
+    });
+  }
+
   function handleDragStart(index: number) {
     setDragIndex(index);
   }
@@ -367,7 +377,7 @@ export default function EditarItemPage() {
           {allPhotos.length > 0 && (
             <>
               <p className="mt-2 text-xs text-gray-500">
-                Arraste para reordenar. A primeira foto será a foto principal.
+                Arraste para reordenar ou toque em uma foto para defini-la como principal.
               </p>
               <div className="mt-2 flex flex-wrap gap-3">
                 {allPhotos.map((photo, i) => (
@@ -378,24 +388,33 @@ export default function EditarItemPage() {
                     onDragOver={(e) => handleDragOver(e, i)}
                     onDrop={() => handleDrop(i)}
                     onDragEnd={handleDragEnd}
-                    className={`relative group cursor-grab active:cursor-grabbing ${
+                    className={`relative group ${
                       dragIndex === i ? 'opacity-40' : ''
                     } ${dragOverIndex === i && dragIndex !== i ? 'ring-2 ring-blue-500 ring-offset-2 rounded' : ''}`}
                   >
                     <img
                       src={getPhotoSrc(photo)}
                       alt={`Foto ${i + 1}`}
-                      className="w-20 h-20 object-cover rounded border border-gray-200"
+                      className="w-20 h-20 object-cover rounded border border-gray-200 cursor-grab active:cursor-grabbing"
                     />
                     {i === 0 && (
                       <span className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white text-[10px] text-center py-0.5 rounded-b">
                         Principal
                       </span>
                     )}
+                    {i !== 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAsCover(i)}
+                        className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-0.5 rounded-b opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100 transition-opacity"
+                      >
+                        Capa
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => removePhoto(i)}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 max-sm:opacity-100 transition-opacity"
                     >
                       &times;
                     </button>
