@@ -181,6 +181,7 @@ export default function CartPage() {
                       <img
                         src={`/api/uploads/${firstPhoto.filename}`}
                         alt={item.title}
+                        loading="lazy"
                         className="w-16 h-16 rounded-md object-cover flex-shrink-0"
                       />
                     ) : (

@@ -113,6 +113,7 @@ export default function HomePage() {
                     <img
                       src={`/api/uploads/${firstPhoto.filename}`}
                       alt={item.title}
+                      loading="lazy"
                       className="w-full h-48 object-cover"
                     />
                   ) : (

@@ -124,7 +124,7 @@ export default function ReservadosPage() {
                     return (
                       <div key={variation.id} className="px-4 py-3 flex items-center gap-4">
                         {thumb ? (
-                          <img src={thumb} alt={item.title} className="w-12 h-12 object-cover rounded flex-shrink-0" />
+                          <img src={thumb} alt={item.title} loading="lazy" className="w-12 h-12 object-cover rounded flex-shrink-0" />
                         ) : (
                           <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs flex-shrink-0">
                             Sem foto

@@ -158,6 +158,7 @@ export default function AdminItensPage() {
                         <img
                           src={thumb}
                           alt={item.title}
+                          loading="lazy"
                           className="w-12 h-12 object-cover rounded"
                         />
                       ) : (

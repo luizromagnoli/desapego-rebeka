@@ -11,24 +11,22 @@ function ensureUploadsDir(): void {
   }
 }
 
+async function processPhoto(file: File): Promise<string> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const filename = `${uuidv4()}.jpg`;
+  const outputPath = path.join(UPLOADS_DIR, filename);
+
+  await sharp(buffer)
+    .rotate()
+    .resize({ width: 800, withoutEnlargement: true })
+    .jpeg({ quality: 70 })
+    .toFile(outputPath);
+
+  return filename;
+}
+
 export async function savePhotos(files: File[]): Promise<string[]> {
   ensureUploadsDir();
-
-  const filenames: string[] = [];
-
-  for (const file of files) {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const filename = `${uuidv4()}.jpg`;
-    const outputPath = path.join(UPLOADS_DIR, filename);
-
-    await sharp(buffer)
-      .rotate()
-      .resize({ width: 1000, withoutEnlargement: true })
-      .jpeg({ quality: 75 })
-      .toFile(outputPath);
-
-    filenames.push(filename);
-  }
-
-  return filenames;
+  const results = await Promise.all(files.map(processPhoto));
+  return results;
 }
