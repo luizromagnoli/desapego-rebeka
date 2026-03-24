@@ -25,20 +25,26 @@ export async function POST(request: NextRequest) {
   const db = getDb();
 
   const items = db
-    .prepare("SELECT id, title FROM items WHERE category IS NULL")
-    .all() as { id: string; title: string }[];
+    .prepare("SELECT id, title, category FROM items WHERE category IS NULL OR category = ''")
+    .all() as { id: string; title: string; category: string | null }[];
 
   let assigned = 0;
+  const unmatchedTitles: string[] = [];
   const update = db.prepare("UPDATE items SET category = ? WHERE id = ?");
 
   const assignAll = db.transaction(() => {
     for (const item of items) {
+      let matched = false;
       for (const [regex, category] of CATEGORY_RULES) {
         if (regex.test(item.title)) {
           update.run(category, item.id);
           assigned++;
+          matched = true;
           break;
         }
+      }
+      if (!matched) {
+        unmatchedTitles.push(item.title);
       }
     }
   });
@@ -49,5 +55,6 @@ export async function POST(request: NextRequest) {
     total: items.length,
     assigned,
     unmatched: items.length - assigned,
+    unmatchedTitles,
   });
 }

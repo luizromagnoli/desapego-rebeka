@@ -13,6 +13,7 @@ export default function ConfigPage() {
   const [saving, setSaving] = useState(false);
   const [assigningCategories, setAssigningCategories] = useState(false);
   const [categoryResult, setCategoryResult] = useState<string | null>(null);
+  const [unmatchedTitles, setUnmatchedTitles] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -103,6 +104,7 @@ export default function ConfigPage() {
                 setCategoryResult(
                   `${data.assigned} de ${data.total} itens categorizados. ${data.unmatched} sem correspondência.`
                 );
+                setUnmatchedTitles(data.unmatchedTitles || []);
               } catch {
                 setCategoryResult('Erro ao atribuir categorias.');
               } finally {
@@ -116,6 +118,16 @@ export default function ConfigPage() {
           </button>
           {categoryResult && (
             <p className="mt-2 text-sm text-gray-700">{categoryResult}</p>
+          )}
+          {unmatchedTitles.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs text-gray-500 font-medium">Itens sem correspondência:</p>
+              <ul className="mt-1 text-xs text-gray-500 list-disc list-inside">
+                {unmatchedTitles.map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       </div>
