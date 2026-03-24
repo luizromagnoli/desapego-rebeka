@@ -25,6 +25,7 @@ const CATEGORIES = [
   'Roupas e Fantasias',
   'Toucas e Acessórios Newborn',
   'Posicionadores',
+  'Props',
   'Mantas e Pelos',
 ];
 
