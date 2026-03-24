@@ -3,14 +3,14 @@ import { getDb } from "@/lib/db";
 import { isAdmin, unauthorizedResponse } from "@/lib/auth";
 
 const CATEGORY_RULES: [RegExp, string][] = [
-  [/^camera|^câmera/i, 'Câmeras'],
-  [/^lente/i, 'Lentes'],
-  [/^flash|^kit flash|^sombrinha/i, 'Iluminação'],
+  [/^camera|^câmera|^cart(ões|ão) de mem|^case para cart|^limpador de cam|^mochila/i, 'Câmeras'],
+  [/^lente|^adaptador|^cinto.*porta lente|^filtro/i, 'Lentes'],
+  [/^flash|^kit flash|^sombrinha|^rebatedor/i, 'Iluminação'],
   [/^suporte|^monopé/i, 'Suportes e Estruturas'],
   [/^fundo /i, 'Fundos Fotográficos'],
-  [/^painel|^mesa de vidro|^sof[aá]|^janela|^vestiário|^casinha|^cadeiras|^arara/i, 'Móveis de Estúdio'],
+  [/^painel|^mesa de vidro|^sof[aá]|^janela|^vestiário|^casinha|^cadeiras|^arara|^cômoda/i, 'Móveis de Estúdio'],
   [/^ovos|^ovinhos|^kit páscoa|coelho|^enfeite de páscoa|^orelhinhas/i, 'Páscoa'],
-  [/^body|^roupa|^romper|^vestido|^casaco|^sobreposição|^listrado|^calça|^superman|^esqueleto|^mulher maravilha|^suspensório|^fantasia|^roupinha|^ursinho fofo/i, 'Roupas e Fantasias'],
+  [/^body|^roupa|^romper|^vestido|^casaco|^sobreposição|^listrado|^calça|^superman|^esqueleto|^mulher maravilha|^suspensório|^fantasia|^roupinha|^ursinho fofo|^bata|^jardineira/i, 'Roupas e Fantasias'],
   [/^touca|^touquinha|^toucas|^headband|^wrap|^almofadinha|^acessórios tricot/i, 'Toucas e Acessórios Newborn'],
   [/^posicionador|^kit posicionador/i, 'Posicionadores'],
   [/^pelo |^manta|^macram[eê]/i, 'Mantas e Pelos'],
