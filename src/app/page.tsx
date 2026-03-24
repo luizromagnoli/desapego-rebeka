@@ -38,7 +38,7 @@ function HomePageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
-  const [storeLocked, setStoreLocked] = useState(false);
+  const [storeLocked, setStoreLocked] = useState<boolean | null>(null);
 
   const sortBy = (searchParams.get('sort') as SortOption) || 'name';
   const search = searchParams.get('q') || '';
@@ -159,8 +159,8 @@ function HomePageContent() {
         </div>
       </header>
 
-      {/* Lock screen */}
-      {storeLocked && !loading && (
+      {/* Lock screen - show while checking or when locked */}
+      {storeLocked !== false && (
         <div className="flex-1 flex items-center justify-center py-24">
           <div className="text-center max-w-md px-4">
             <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6">
@@ -175,7 +175,7 @@ function HomePageContent() {
       )}
 
       {/* Content */}
-      {!storeLocked && (
+      {storeLocked === false && (
       <main className="max-w-6xl mx-auto px-4 py-8">
         {loading && (
           <p className="text-center text-gray-500">Carregando itens...</p>
@@ -384,7 +384,7 @@ function HomePageContent() {
       )}
 
       {/* Floating cart bar */}
-      {!storeLocked && cartVariationIds.length > 0 && (
+      {storeLocked === false && cartVariationIds.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <p className="text-sm sm:text-base text-gray-700">
