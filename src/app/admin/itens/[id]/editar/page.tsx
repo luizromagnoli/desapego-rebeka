@@ -30,6 +30,21 @@ interface VariationEdit {
   buyer_name?: string | null;
 }
 
+const CATEGORIES = [
+  'Câmeras',
+  'Lentes',
+  'Iluminação',
+  'Suportes e Estruturas',
+  'Fundos Fotográficos',
+  'Móveis de Estúdio',
+  'Decoração',
+  'Páscoa',
+  'Roupas e Fantasias',
+  'Toucas e Acessórios Newborn',
+  'Posicionadores',
+  'Mantas e Pelos',
+];
+
 export default function EditarItemPage() {
   const router = useRouter();
   const params = useParams();
@@ -40,6 +55,7 @@ export default function EditarItemPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('');
   const [allPhotos, setAllPhotos] = useState<DraggablePhoto[]>([]);
   const [variations, setVariations] = useState<VariationEdit[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -56,6 +72,7 @@ export default function EditarItemPage() {
       setTitle(item.title);
       setDescription(item.description);
       setPrice(String(item.price));
+      setCategory(item.category ?? '');
       const sorted = [...item.photos].sort((a, b) => a.sort_order - b.sort_order);
       setAllPhotos(sorted.map((photo) => ({ type: 'existing', photo })));
       setVariations(
@@ -212,6 +229,7 @@ export default function EditarItemPage() {
       formData.append('title', title.trim());
       formData.append('description', description.trim());
       formData.append('price', price);
+      formData.append('category', category);
 
       // Send variations
       const variationsPayload = variations.map((v) => ({
@@ -324,6 +342,26 @@ export default function EditarItemPage() {
             onChange={(e) => setPrice(e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="category"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Categoria
+          </label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Selecione uma categoria</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
 
         {/* Variations */}

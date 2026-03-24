@@ -26,6 +26,7 @@ export interface Item {
   title: string;
   description: string;
   price: number;
+  category: string | null;
   status: string;
   buyer_name: string | null;
   buyer_contact: string | null;
@@ -145,14 +146,15 @@ export function createItem(data: {
   title: string;
   description: string;
   price: number;
+  category?: string | null;
   variations?: { name: string; price?: number | null }[];
 }): string {
   const db = getDb();
   const id = uuidv4();
 
   db.prepare(
-    "INSERT INTO items (id, title, description, price) VALUES (?, ?, ?, ?)"
-  ).run(id, data.title, data.description, data.price);
+    "INSERT INTO items (id, title, description, price, category) VALUES (?, ?, ?, ?, ?)"
+  ).run(id, data.title, data.description, data.price, data.category ?? null);
 
   const variationsList = data.variations && data.variations.length > 0
     ? data.variations
@@ -175,11 +177,11 @@ export function createItem(data: {
 
 export function updateItem(
   id: string,
-  data: { title?: string; description?: string; price?: number }
+  data: { title?: string; description?: string; price?: number; category?: string | null }
 ): void {
   const db = getDb();
   const fields: string[] = [];
-  const values: (string | number)[] = [];
+  const values: (string | number | null)[] = [];
 
   if (data.title !== undefined) {
     fields.push("title = ?");
@@ -192,6 +194,10 @@ export function updateItem(
   if (data.price !== undefined) {
     fields.push("price = ?");
     values.push(data.price);
+  }
+  if (data.category !== undefined) {
+    fields.push("category = ?");
+    values.push(data.category);
   }
 
   if (fields.length === 0) return;

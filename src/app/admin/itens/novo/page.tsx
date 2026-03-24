@@ -13,6 +13,21 @@ interface PhotoPreview {
   url: string;
 }
 
+const CATEGORIES = [
+  'Câmeras',
+  'Lentes',
+  'Iluminação',
+  'Suportes e Estruturas',
+  'Fundos Fotográficos',
+  'Móveis de Estúdio',
+  'Decoração',
+  'Páscoa',
+  'Roupas e Fantasias',
+  'Toucas e Acessórios Newborn',
+  'Posicionadores',
+  'Mantas e Pelos',
+];
+
 export default function NovoItemPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -20,6 +35,7 @@ export default function NovoItemPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('');
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
   const [variations, setVariations] = useState<{ name: string; price: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -126,6 +142,9 @@ export default function NovoItemPage() {
       formData.append('title', title.trim());
       formData.append('description', description.trim());
       formData.append('price', price);
+      if (category) {
+        formData.append('category', category);
+      }
       photos.forEach((p) => formData.append('files', p.file));
 
       if (variations.length > 0) {
@@ -217,6 +236,26 @@ export default function NovoItemPage() {
             onChange={(e) => setPrice(e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="category"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Categoria
+          </label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Selecione uma categoria</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
 
         {/* Variations */}

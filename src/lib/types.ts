@@ -20,6 +20,7 @@ export interface Item {
   title: string;
   description: string;
   price: number;
+  category: string | null;
   status: 'available' | 'reserved' | 'sold';
   buyer_name: string | null;
   buyer_contact: string | null;

@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { Item } from '@/lib/types';
 import { getCart, addToCart, removeFromCart } from '@/lib/cart';
+import ItemCard from '@/components/ItemCard';
 
 function formatPrice(price: number): string {
   return price.toLocaleString('pt-BR', {
@@ -43,6 +44,24 @@ function HomePageContent() {
   const sortBy = (searchParams.get('sort') as SortOption) || 'name';
   const search = searchParams.get('q') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const catsParam = searchParams.get('cats') || '';
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
+    () => new Set(catsParam ? catsParam.split(',').filter(Boolean) : [])
+  );
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    }
+    if (categoryDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [categoryDropdownOpen]);
 
   function updateParams(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -102,11 +121,40 @@ function HomePageContent() {
     return sum + matched.reduce((s, v) => s + (v.price ?? item.price), 0);
   }, 0);
 
+  // Derive available categories from items
+  const availableCategories = Array.from(
+    new Set(items.map((item) => item.category).filter((c): c is string => c !== null))
+  ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+  function toggleCategory(cat: string) {
+    setSelectedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) {
+        next.delete(cat);
+      } else {
+        next.add(cat);
+      }
+      const catsValue = Array.from(next).join(',');
+      updateParams({ cats: catsValue || null, page: '1' });
+      return next;
+    });
+  }
+
+  function clearCategories() {
+    setSelectedCategories(new Set());
+    updateParams({ cats: null, page: '1' });
+  }
+
   // Filter by search
   const searchTerm = search.trim().toLowerCase();
-  const filteredItems = searchTerm
+  const searchFiltered = searchTerm
     ? items.filter((item) => item.title.toLowerCase().includes(searchTerm))
     : items;
+
+  // Filter by categories
+  const filteredItems = selectedCategories.size > 0
+    ? searchFiltered.filter((item) => item.category !== null && selectedCategories.has(item.category))
+    : searchFiltered;
 
   // Sort items: available first, then within each group apply user sort
   const sortedItems = [...filteredItems].sort((a, b) => {
@@ -228,6 +276,51 @@ function HomePageContent() {
                 {opt.label}
               </button>
             ))}
+            {/* Category filter */}
+            {availableCategories.length > 0 && (
+              <div className="relative ml-2" ref={categoryDropdownRef}>
+                <button
+                  onClick={() => setCategoryDropdownOpen((prev) => !prev)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                    selectedCategories.size > 0
+                      ? 'bg-amber-100 text-amber-800 border-amber-400'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-amber-400'
+                  }`}
+                >
+                  Categorias{selectedCategories.size > 0 ? ` (${selectedCategories.size})` : ''}
+                </button>
+                {categoryDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-30 min-w-[220px] max-h-72 overflow-y-auto">
+                    <div className="p-2 border-b border-gray-100 flex justify-between items-center">
+                      <span className="text-xs text-gray-500 font-medium">Filtrar por categoria</span>
+                      {selectedCategories.size > 0 && (
+                        <button
+                          onClick={clearCategories}
+                          className="text-xs text-amber-700 hover:text-amber-800 font-medium"
+                        >
+                          Limpar
+                        </button>
+                      )}
+                    </div>
+                    {availableCategories.map((cat) => (
+                      <label
+                        key={cat}
+                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.has(cat)}
+                          onChange={() => toggleCategory(cat)}
+                          className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                        />
+                        {cat}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <span className="text-xs text-gray-400 ml-auto">
               {sortedItems.length} {sortedItems.length === 1 ? 'item' : 'itens'}
             </span>
@@ -235,121 +328,14 @@ function HomePageContent() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {paginatedItems.map((item) => {
-            const variations = item.variations || [];
-            const availableVariations = variations.filter((v) => v.status === 'available');
-            const allUnavailable = availableVariations.length === 0;
-            const hasMultipleVariations = variations.length > 1;
-            const firstPhoto = item.photos?.[0];
-
-            // For single-variation items, check if it's in cart
-            const singleVariation = !hasMultipleVariations && variations.length === 1 ? variations[0] : null;
-            const isSelected = singleVariation ? cartVariationIds.includes(singleVariation.id) : false;
-
-            return (
-              <div
-                key={item.id}
-                className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-amber-300 ${
-                  allUnavailable ? 'opacity-60' : ''
-                }`}
-              >
-                {/* Photo / Placeholder */}
-                <Link href={`/item/${item.id}`} className="block relative">
-                  {firstPhoto ? (
-                    <img
-                      src={`/api/uploads/${firstPhoto.filename}`}
-                      alt={item.title}
-                      loading="lazy"
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                      <svg
-                        className="w-12 h-12 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                    </div>
-                  )}
-                  {allUnavailable && (
-                    <span className="absolute top-2 right-2 bg-amber-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                      Reservado
-                    </span>
-                  )}
-                </Link>
-
-                {/* Info */}
-                <div className="p-4">
-                  <Link href={`/item/${item.id}`} className="block cursor-pointer">
-                    <h2 className="font-semibold text-gray-800 hover:text-amber-700 transition-colors line-clamp-2">
-                      {item.title}
-                    </h2>
-                    {(() => {
-                      if (!hasMultipleVariations) {
-                        const vPrice = variations[0]?.price;
-                        return (
-                          <p className="mt-1 text-lg font-bold text-amber-700">
-                            {formatPrice(vPrice ?? item.price)}
-                          </p>
-                        );
-                      }
-                      const prices = variations.map((v) => v.price ?? item.price);
-                      const min = Math.min(...prices);
-                      const max = Math.max(...prices);
-                      return (
-                        <p className="mt-1 text-lg font-bold text-amber-700">
-                          {min === max ? formatPrice(min) : `${formatPrice(min)} – ${formatPrice(max)}`}
-                        </p>
-                      );
-                    })()}
-                    {hasMultipleVariations && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {availableVariations.length} de {variations.length} disponíveis
-                      </p>
-                    )}
-                  </Link>
-
-                  {/* For single-variation items, show select button directly */}
-                  {!hasMultipleVariations && singleVariation && singleVariation.status === 'available' && (
-                    <button
-                      onClick={() => toggleVariation(singleVariation.id)}
-                      className={`mt-3 w-full py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                        isSelected
-                          ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
-                          : 'bg-amber-600 text-white hover:bg-amber-700'
-                      }`}
-                    >
-                      {isSelected ? 'Selecionado' : 'Selecionar'}
-                    </button>
-                  )}
-
-                  {/* For multi-variation items, link to detail page */}
-                  {hasMultipleVariations && availableVariations.length > 0 && (
-                    <Link
-                      href={`/item/${item.id}`}
-                      className="mt-3 w-full py-2 px-4 rounded-md text-sm font-medium transition-colors bg-amber-600 text-white hover:bg-amber-700 block text-center"
-                    >
-                      Ver opções
-                    </Link>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {paginatedItems.map((item) => (
+            <ItemCard
+              key={item.id}
+              item={item}
+              cartVariationIds={cartVariationIds}
+              onToggleVariation={toggleVariation}
+            />
+          ))}
         </div>
 
         {/* Pagination */}

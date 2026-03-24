@@ -66,6 +66,12 @@ export function getDb(): Database.Database {
     db.exec("ALTER TABLE item_variations ADD COLUMN price REAL");
   }
 
+  // Migration: add category column to items if it doesn't exist
+  const itemColumns = db.prepare("PRAGMA table_info(items)").all() as { name: string }[];
+  if (!itemColumns.find((c) => c.name === "category")) {
+    db.exec("ALTER TABLE items ADD COLUMN category TEXT");
+  }
+
   // Auto-migration: if item_variations is empty but items has rows,
   // create a default variation for each existing item
   const variationCount = (db.prepare("SELECT COUNT(*) as cnt FROM item_variations").get() as { cnt: number }).cnt;

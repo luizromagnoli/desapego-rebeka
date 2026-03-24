@@ -71,7 +71,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const id = createItem({ title, description, price, variations });
+  const categoryValue = formData.get("category");
+  const category = typeof categoryValue === "string" && categoryValue.trim() ? categoryValue.trim() : null;
+
+  const id = createItem({ title, description, price, category, variations });
 
   const files = formData.getAll("files") as File[];
   if (files.length > 0 && files[0].size > 0) {

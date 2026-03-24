@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Item, ItemVariation } from '@/lib/types';
 import { getCart, addToCart, removeFromCart } from '@/lib/cart';
+import ItemCard from '@/components/ItemCard';
 
 function formatPrice(price: number): string {
   return price.toLocaleString('pt-BR', {
@@ -409,6 +410,32 @@ export default function ItemDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Similar items */}
+      {item.category && (() => {
+        const similarItems = allItems
+          .filter((i) => i.id !== item.id && i.category === item.category)
+          .slice(0, 8);
+        if (similarItems.length === 0) return null;
+        return (
+          <section className="max-w-4xl mx-auto px-4 pb-8">
+            <div className="border-t border-gray-200 pt-8">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Itens semelhantes</h2>
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {similarItems.map((si) => (
+                  <div key={si.id} className="flex-shrink-0 w-48">
+                    <ItemCard
+                      item={si}
+                      cartVariationIds={cartVariationIds}
+                      compact
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Floating cart bar */}
       {cartVariationIds.length > 0 && (

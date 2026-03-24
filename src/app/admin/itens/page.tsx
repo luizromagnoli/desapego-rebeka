@@ -133,6 +133,7 @@ export default function AdminItensPage() {
                 <th className="px-4 py-3 font-medium">Foto</th>
                 <th className="px-4 py-3 font-medium">Título</th>
                 <th className="px-4 py-3 font-medium">Preço</th>
+                <th className="px-4 py-3 font-medium">Categoria</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Info</th>
                 <th className="px-4 py-3 font-medium text-right">Ações</th>
@@ -177,6 +178,9 @@ export default function AdminItensPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {formatPrice(item.price)}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 text-xs">
+                      {item.category ?? '-'}
                     </td>
                     <td className="px-4 py-3">
                       <span

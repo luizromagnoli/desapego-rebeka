@@ -36,7 +36,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const description = formData.get("description");
   const priceValue = formData.get("price");
 
-  const updateData: { title?: string; description?: string; price?: number } =
+  const updateData: { title?: string; description?: string; price?: number; category?: string | null } =
     {};
 
   if (typeof title === "string") {
@@ -51,6 +51,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return Response.json({ error: "Preço inválido" }, { status: 400 });
     }
     updateData.price = price;
+  }
+
+  const categoryValue = formData.get("category");
+  if (categoryValue !== null) {
+    updateData.category = typeof categoryValue === "string" && categoryValue.trim() ? categoryValue.trim() : null;
   }
 
   updateItem(id, updateData);

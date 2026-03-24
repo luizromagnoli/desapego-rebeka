@@ -11,6 +11,8 @@ export default function ConfigPage() {
   const [storeLocked, setStoreLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [assigningCategories, setAssigningCategories] = useState(false);
+  const [categoryResult, setCategoryResult] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -78,6 +80,44 @@ export default function ConfigPage() {
             <span className="text-green-600 font-medium">Loja aberta</span>
           )}
         </p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-lg mt-6">
+        <div>
+          <p className="font-medium text-gray-800">Categorias automáticas</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Atribui categorias automaticamente aos itens que ainda não possuem uma,
+            com base no título.
+          </p>
+          <button
+            onClick={async () => {
+              setAssigningCategories(true);
+              setCategoryResult(null);
+              try {
+                const res = await fetch('/api/items/assign-categories', {
+                  method: 'POST',
+                  headers: getHeaders(),
+                });
+                if (!res.ok) throw new Error('Erro ao atribuir categorias');
+                const data = await res.json();
+                setCategoryResult(
+                  `${data.assigned} de ${data.total} itens categorizados. ${data.unmatched} sem correspondência.`
+                );
+              } catch {
+                setCategoryResult('Erro ao atribuir categorias.');
+              } finally {
+                setAssigningCategories(false);
+              }
+            }}
+            disabled={assigningCategories}
+            className="mt-3 bg-blue-600 text-white rounded px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {assigningCategories ? 'Atribuindo...' : 'Atribuir categorias automaticamente'}
+          </button>
+          {categoryResult && (
+            <p className="mt-2 text-sm text-gray-700">{categoryResult}</p>
+          )}
+        </div>
       </div>
     </div>
   );
