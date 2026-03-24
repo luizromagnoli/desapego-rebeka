@@ -61,22 +61,26 @@ function HomePageContent() {
     setCartVariationIds(getCart());
     fetch('/api/settings')
       .then((res) => res.json())
-      .then((data) => setStoreLocked(data.store_locked === 'true'))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/items')
-      .then((res) => {
-        if (!res.ok) throw new Error('Erro ao carregar itens');
-        return res.json();
-      })
-      .then((data: Item[]) => {
-        setItems(data);
-        setLoading(false);
+      .then((data) => {
+        const locked = data.store_locked === 'true';
+        setStoreLocked(locked);
+        if (locked) {
+          setLoading(false);
+          return;
+        }
+        // Only fetch items if store is unlocked
+        return fetch('/api/items')
+          .then((res) => {
+            if (!res.ok) throw new Error('Erro ao carregar itens');
+            return res.json();
+          })
+          .then((data: Item[]) => {
+            setItems(data);
+            setLoading(false);
+          });
       })
       .catch((err) => {
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'Erro');
         setLoading(false);
       });
   }, []);

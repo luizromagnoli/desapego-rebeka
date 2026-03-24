@@ -2,10 +2,20 @@ import { NextRequest } from "next/server";
 import { getItems, createItem, addPhotos } from "@/lib/items";
 import { savePhotos } from "@/lib/upload";
 import { isAdmin, unauthorizedResponse } from "@/lib/auth";
+import { getDb } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const includeAll = searchParams.get("all") === "true";
+
+  // If not admin and store is locked, return empty list
+  if (!isAdmin(request) && !includeAll) {
+    const db = getDb();
+    const setting = db.prepare("SELECT value FROM settings WHERE key = 'store_locked'").get() as { value: string } | undefined;
+    if (setting?.value === "true") {
+      return Response.json([]);
+    }
+  }
 
   const items = getItems(includeAll);
   return Response.json(items);
