@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Item, ItemVariation } from '@/lib/types';
 import { getCart, addToCart, removeFromCart } from '@/lib/cart';
@@ -15,6 +15,7 @@ function formatPrice(price: number): string {
 
 export default function ItemDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,12 +97,12 @@ export default function ItemDetailPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-red-600">{error || 'Item não encontrado'}</p>
-        <Link
-          href="/"
+        <button
+          onClick={() => router.back()}
           className="text-amber-700 hover:text-amber-800 font-medium"
         >
           Voltar
-        </Link>
+        </button>
       </div>
     );
   }
@@ -125,8 +126,8 @@ export default function ItemDetailPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <Link
-            href="/"
+          <button
+            onClick={() => router.back()}
             className="inline-flex items-center text-amber-700 hover:text-amber-800 font-medium text-sm"
           >
             <svg
@@ -143,7 +144,7 @@ export default function ItemDetailPage() {
               />
             </svg>
             Voltar
-          </Link>
+          </button>
         </div>
       </header>
 
