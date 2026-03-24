@@ -7,7 +7,7 @@ const CATEGORY_RULES: [RegExp, string][] = [
   [/^lente|^adaptador|^cinto.*porta lente|^filtro/i, 'Lentes'],
   [/^flash|^kit flash|^sombrinha|^rebatedor/i, 'Iluminação'],
   [/^suporte|^monopé/i, 'Suportes e Estruturas'],
-  [/^fundo /i, 'Fundos Fotográficos'],
+  [/^fund[ou] /i, 'Fundos Fotográficos'],
   [/^painel|^mesa de vidro|^sof[aá]|^janela|^vestiário|^casinha|^cadeiras|^arara|^cômoda/i, 'Móveis de Estúdio'],
   [/^ovos|^ovinhos|^kit páscoa|coelho|^enfeite de páscoa|^orelhinhas/i, 'Páscoa'],
   [/^body|^roupa|^romper|^vestido|^casaco|^sobreposição|^listrado|^calça|^superman|^esqueleto|^mulher maravilha|^suspensório|^fantasia|^roupinha|^ursinho fofo|^bata|^jardineira/i, 'Roupas e Fantasias'],
