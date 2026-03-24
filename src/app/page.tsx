@@ -38,6 +38,7 @@ function HomePageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
+  const [storeLocked, setStoreLocked] = useState(false);
 
   const sortBy = (searchParams.get('sort') as SortOption) || 'name';
   const search = searchParams.get('q') || '';
@@ -58,6 +59,10 @@ function HomePageContent() {
 
   useEffect(() => {
     setCartVariationIds(getCart());
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => setStoreLocked(data.store_locked === 'true'))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -154,7 +159,23 @@ function HomePageContent() {
         </div>
       </header>
 
+      {/* Lock screen */}
+      {storeLocked && !loading && (
+        <div className="flex-1 flex items-center justify-center py-24">
+          <div className="text-center max-w-md px-4">
+            <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">Aguarde</h2>
+            <p className="text-gray-600">Os itens ficarão disponíveis em breve.</p>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
+      {!storeLocked && (
       <main className="max-w-6xl mx-auto px-4 py-8">
         {loading && (
           <p className="text-center text-gray-500">Carregando itens...</p>
@@ -360,9 +381,10 @@ function HomePageContent() {
           </div>
         )}
       </main>
+      )}
 
       {/* Floating cart bar */}
-      {cartVariationIds.length > 0 && (
+      {!storeLocked && cartVariationIds.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] z-50">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <p className="text-sm sm:text-base text-gray-700">

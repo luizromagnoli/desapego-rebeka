@@ -53,6 +53,11 @@ export function getDb(): Database.Database {
       buyer_contact TEXT,
       FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   // Migration: add price column to item_variations if it doesn't exist
@@ -85,6 +90,12 @@ export function getDb(): Database.Database {
     });
 
     migrate();
+  }
+
+  // Initialize default settings
+  const lockSetting = db.prepare("SELECT * FROM settings WHERE key = 'store_locked'").get();
+  if (!lockSetting) {
+    db.prepare("INSERT INTO settings (key, value) VALUES ('store_locked', 'false')").run();
   }
 
   return db;
