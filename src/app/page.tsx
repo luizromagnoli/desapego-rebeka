@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import type { Item } from '@/lib/types';
 import { getCart, addToCart, removeFromCart } from '@/lib/cart';
 
@@ -22,13 +23,38 @@ function getItemMinPrice(item: Item): number {
 }
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">Carregando...</p></div>}>
+      <HomePageContent />
+    </Suspense>
+  );
+}
+
+function HomePageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>('name');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+
+  const sortBy = (searchParams.get('sort') as SortOption) || 'name';
+  const search = searchParams.get('q') || '';
+  const page = parseInt(searchParams.get('page') || '1', 10);
+
+  function updateParams(updates: Record<string, string | null>) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null || value === '' || (key === 'page' && value === '1') || (key === 'sort' && value === 'name')) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false });
+  }
 
   useEffect(() => {
     setCartVariationIds(getCart());
@@ -97,13 +123,11 @@ export default function HomePage() {
   const paginatedItems = sortedItems.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   function handleSortChange(newSort: SortOption) {
-    setSortBy(newSort);
-    setPage(1);
+    updateParams({ sort: newSort, page: '1' });
   }
 
   function handleSearchChange(value: string) {
-    setSearch(value);
-    setPage(1);
+    updateParams({ q: value, page: '1' });
   }
 
   return (
@@ -307,7 +331,7 @@ export default function HomePage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-8">
             <button
-              onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo(0, 0); }}
+              onClick={() => { updateParams({ page: String(Math.max(1, page - 1)) }); window.scrollTo(0, 0); }}
               disabled={page === 1}
               className="px-3 py-1.5 rounded-md text-sm border border-gray-300 text-gray-600 hover:border-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -316,7 +340,7 @@ export default function HomePage() {
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button
                 key={p}
-                onClick={() => { setPage(p); window.scrollTo(0, 0); }}
+                onClick={() => { updateParams({ page: String(p) }); window.scrollTo(0, 0); }}
                 className={`w-9 h-9 rounded-md text-sm font-medium border transition-colors ${
                   p === page
                     ? 'bg-amber-600 text-white border-amber-600'
@@ -327,7 +351,7 @@ export default function HomePage() {
               </button>
             ))}
             <button
-              onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo(0, 0); }}
+              onClick={() => { updateParams({ page: String(Math.min(totalPages, page + 1)) }); window.scrollTo(0, 0); }}
               disabled={page === totalPages}
               className="px-3 py-1.5 rounded-md text-sm border border-gray-300 text-gray-600 hover:border-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
             >

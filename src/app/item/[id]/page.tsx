@@ -21,9 +21,14 @@ export default function ItemDetailPage() {
   const [mainPhotoIndex, setMainPhotoIndex] = useState(0);
   const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
   const [selectedVariationIds, setSelectedVariationIds] = useState<Set<string>>(new Set());
+  const [allItems, setAllItems] = useState<Item[]>([]);
 
   useEffect(() => {
     setCartVariationIds(getCart());
+    fetch('/api/items')
+      .then((res) => res.json())
+      .then((data: Item[]) => setAllItems(data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -411,6 +416,20 @@ export default function ItemDetailPage() {
             <p className="text-sm sm:text-base text-gray-700">
               <span className="font-semibold">{cartVariationIds.length}</span>{' '}
               {cartVariationIds.length === 1 ? 'item selecionado' : 'itens selecionados'}
+              {allItems.length > 0 && (
+                <>
+                  {' '}&mdash;{' '}
+                  <span className="font-bold text-amber-700">
+                    {formatPrice(
+                      allItems.reduce((sum, itm) => {
+                        const vars = itm.variations || [];
+                        const matched = vars.filter((v) => cartVariationIds.includes(v.id));
+                        return sum + matched.reduce((s, v) => s + (v.price ?? itm.price), 0);
+                      }, 0)
+                    )}
+                  </span>
+                </>
+              )}
             </p>
             <Link
               href="/carrinho"
