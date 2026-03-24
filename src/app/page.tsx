@@ -27,6 +27,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -66,8 +67,14 @@ export default function HomePage() {
     return sum + matched.reduce((s, v) => s + (v.price ?? item.price), 0);
   }, 0);
 
+  // Filter by search
+  const searchTerm = search.trim().toLowerCase();
+  const filteredItems = searchTerm
+    ? items.filter((item) => item.title.toLowerCase().includes(searchTerm))
+    : items;
+
   // Sort items: available first, then within each group apply user sort
-  const sortedItems = [...items].sort((a, b) => {
+  const sortedItems = [...filteredItems].sort((a, b) => {
     // Available items first, then reserved
     const statusOrder = { available: 0, reserved: 1, sold: 2 };
     const statusDiff = (statusOrder[a.status as keyof typeof statusOrder] ?? 0) -
@@ -91,6 +98,11 @@ export default function HomePage() {
 
   function handleSortChange(newSort: SortOption) {
     setSortBy(newSort);
+    setPage(1);
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
     setPage(1);
   }
 
@@ -127,7 +139,19 @@ export default function HomePage() {
           </p>
         )}
 
-        {/* Sort buttons */}
+        {/* Search and sort */}
+        {!loading && !error && items.length > 0 && (
+          <div className="mb-4">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Buscar por nome..."
+              className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            />
+          </div>
+        )}
+
         {!loading && !error && items.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mb-6">
             <span className="text-sm text-gray-500 mr-1">Ordenar:</span>
