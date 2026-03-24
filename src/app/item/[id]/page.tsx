@@ -277,9 +277,22 @@ export default function ItemDetailPage() {
             <div className="md:w-1/2 p-6">
               <h1 className="text-2xl font-bold text-gray-900">{item.title}</h1>
 
-              <p className="mt-3 text-3xl font-bold text-amber-700">
-                {formatPrice(item.price)}
-              </p>
+              {(() => {
+                const prices = variations
+                  .filter((v) => v.status === 'available')
+                  .map((v) => v.price ?? item.price);
+                const minPrice = prices.length > 0 ? Math.min(...prices) : item.price;
+                const maxPrice = prices.length > 0 ? Math.max(...prices) : item.price;
+                const hasDifferentPrices = showVariationSelector && minPrice !== maxPrice;
+
+                return (
+                  <p className="mt-3 text-3xl font-bold text-amber-700">
+                    {hasDifferentPrices
+                      ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`
+                      : formatPrice(minPrice)}
+                  </p>
+                );
+              })()}
 
               {item.description && (
                 <div className="mt-6">
@@ -322,6 +335,7 @@ export default function ItemDetailPage() {
                           }`}
                         >
                           {v.name}
+                          {v.price != null && v.price !== item.price && ` - ${formatPrice(v.price)}`}
                           {inCart && ' ✓'}
                           {v.status === 'reserved' && ' (reservado)'}
                           {v.status === 'sold' && ' (vendido)'}

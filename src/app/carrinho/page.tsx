@@ -70,7 +70,7 @@ export default function CartPage() {
     }
   }
 
-  const totalPrice = cartEntries.reduce((sum, entry) => sum + entry.item.price, 0);
+  const totalPrice = cartEntries.reduce((sum, entry) => sum + (entry.variation.price ?? entry.item.price), 0);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -213,7 +213,7 @@ export default function CartPage() {
                         {displayTitle}
                       </h3>
                       <p className="text-amber-700 font-semibold">
-                        {formatPrice(item.price)}
+                        {formatPrice(variation.price ?? item.price)}
                       </p>
                     </div>
 

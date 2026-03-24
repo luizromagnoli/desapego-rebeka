@@ -51,8 +51,8 @@ export default function HomePage() {
   // Compute total price from cart
   const cartTotal = items.reduce((sum, item) => {
     const vars = item.variations || [];
-    const matchCount = vars.filter((v) => cartVariationIds.includes(v.id)).length;
-    return sum + item.price * matchCount;
+    const matched = vars.filter((v) => cartVariationIds.includes(v.id));
+    return sum + matched.reduce((s, v) => s + (v.price ?? item.price), 0);
   }, 0);
 
   return (
@@ -152,9 +152,24 @@ export default function HomePage() {
                     <h2 className="font-semibold text-gray-800 hover:text-amber-700 transition-colors line-clamp-2">
                       {item.title}
                     </h2>
-                    <p className="mt-1 text-lg font-bold text-amber-700">
-                      {formatPrice(item.price)}
-                    </p>
+                    {(() => {
+                      if (!hasMultipleVariations) {
+                        const vPrice = variations[0]?.price;
+                        return (
+                          <p className="mt-1 text-lg font-bold text-amber-700">
+                            {formatPrice(vPrice ?? item.price)}
+                          </p>
+                        );
+                      }
+                      const prices = variations.map((v) => v.price ?? item.price);
+                      const min = Math.min(...prices);
+                      const max = Math.max(...prices);
+                      return (
+                        <p className="mt-1 text-lg font-bold text-amber-700">
+                          {min === max ? formatPrice(min) : `${formatPrice(min)} – ${formatPrice(max)}`}
+                        </p>
+                      );
+                    })()}
                     {hasMultipleVariations && (
                       <p className="text-xs text-gray-500 mt-1">
                         {availableVariations.length} de {variations.length} disponíveis

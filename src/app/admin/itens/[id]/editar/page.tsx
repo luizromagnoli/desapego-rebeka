@@ -25,6 +25,7 @@ type DraggablePhoto = PhotoItem | NewPhotoItem;
 interface VariationEdit {
   id?: string;
   name: string;
+  price: string;
   status?: string;
   buyer_name?: string | null;
 }
@@ -61,6 +62,7 @@ export default function EditarItemPage() {
         (item.variations || []).map((v: ItemVariation) => ({
           id: v.id,
           name: v.name,
+          price: v.price != null ? String(v.price) : '',
           status: v.status,
           buyer_name: v.buyer_name,
         }))
@@ -157,12 +159,18 @@ export default function EditarItemPage() {
   }
 
   function addVariation() {
-    setVariations((prev) => [...prev, { name: '' }]);
+    setVariations((prev) => [...prev, { name: '', price: '' }]);
   }
 
   function updateVariationName(index: number, name: string) {
     setVariations((prev) =>
       prev.map((v, i) => (i === index ? { ...v, name } : v))
+    );
+  }
+
+  function updateVariationPrice(index: number, price: string) {
+    setVariations((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, price } : v))
     );
   }
 
@@ -209,6 +217,7 @@ export default function EditarItemPage() {
       const variationsPayload = variations.map((v) => ({
         id: v.id,
         name: v.name.trim(),
+        price: v.price ? parseFloat(v.price) : null,
       }));
       formData.append('variations', JSON.stringify(variationsPayload));
 
@@ -332,6 +341,15 @@ export default function EditarItemPage() {
                     onChange={(e) => updateVariationName(i, e.target.value)}
                     placeholder="Nome da variação"
                     className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={v.price}
+                    onChange={(e) => updateVariationPrice(i, e.target.value)}
+                    placeholder="Preço (opcional)"
+                    className="w-32 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   {v.status && v.status !== 'available' && (
                     <span className={`text-xs px-2 py-0.5 rounded ${

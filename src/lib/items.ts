@@ -15,6 +15,7 @@ export interface ItemVariation {
   id: string;
   item_id: string;
   name: string;
+  price: number | null;
   status: string;
   buyer_name: string | null;
   buyer_contact: string | null;
@@ -144,7 +145,7 @@ export function createItem(data: {
   title: string;
   description: string;
   price: number;
-  variations?: string[];
+  variations?: { name: string; price?: number | null }[];
 }): string {
   const db = getDb();
   const id = uuidv4();
@@ -153,17 +154,17 @@ export function createItem(data: {
     "INSERT INTO items (id, title, description, price) VALUES (?, ?, ?, ?)"
   ).run(id, data.title, data.description, data.price);
 
-  const variationNames = data.variations && data.variations.length > 0
+  const variationsList = data.variations && data.variations.length > 0
     ? data.variations
-    : ["Padrão"];
+    : [{ name: "Padrão", price: null }];
 
   const insert = db.prepare(
-    "INSERT INTO item_variations (id, item_id, name) VALUES (?, ?, ?)"
+    "INSERT INTO item_variations (id, item_id, name, price) VALUES (?, ?, ?, ?)"
   );
 
   const createVariations = db.transaction(() => {
-    for (const name of variationNames) {
-      insert.run(uuidv4(), id, name);
+    for (const v of variationsList) {
+      insert.run(uuidv4(), id, v.name, v.price ?? null);
     }
   });
 
@@ -262,19 +263,20 @@ export function removePhoto(photoId: string): void {
 
 // Variation CRUD
 
-export function createVariation(itemId: string, name: string): string {
+export function createVariation(itemId: string, name: string, price?: number | null): string {
   const db = getDb();
   const id = uuidv4();
   db.prepare(
-    "INSERT INTO item_variations (id, item_id, name) VALUES (?, ?, ?)"
-  ).run(id, itemId, name);
+    "INSERT INTO item_variations (id, item_id, name, price) VALUES (?, ?, ?, ?)"
+  ).run(id, itemId, name, price ?? null);
   return id;
 }
 
-export function updateVariation(variationId: string, name: string): void {
+export function updateVariation(variationId: string, name: string, price?: number | null): void {
   const db = getDb();
-  db.prepare("UPDATE item_variations SET name = ? WHERE id = ?").run(
+  db.prepare("UPDATE item_variations SET name = ?, price = ? WHERE id = ?").run(
     name,
+    price ?? null,
     variationId
   );
 }
@@ -389,7 +391,7 @@ export function markAsAvailable(id: string): void {
 
 export function syncItemVariations(
   itemId: string,
-  variations: { id?: string; name: string }[]
+  variations: { id?: string; name: string; price?: number | null }[]
 ): void {
   const db = getDb();
 
@@ -411,9 +413,9 @@ export function syncItemVariations(
   // Update existing and create new
   for (const v of variations) {
     if (v.id) {
-      updateVariation(v.id, v.name);
+      updateVariation(v.id, v.name, v.price);
     } else {
-      createVariation(itemId, v.name);
+      createVariation(itemId, v.name, v.price);
     }
   }
 }

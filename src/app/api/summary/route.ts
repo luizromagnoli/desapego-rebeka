@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     .prepare(
       `SELECT v.buyer_name, v.buyer_contact, v.status,
         COUNT(*) as item_count,
-        SUM(i.price) as total_value
+        SUM(COALESCE(v.price, i.price)) as total_value
       FROM item_variations v
       JOIN items i ON i.id = v.item_id
       WHERE v.buyer_name IS NOT NULL

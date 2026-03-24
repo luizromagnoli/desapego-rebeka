@@ -9,6 +9,7 @@ export interface ItemVariation {
   id: string;
   item_id: string;
   name: string;
+  price: number | null;
   status: 'available' | 'reserved' | 'sold';
   buyer_name: string | null;
   buyer_contact: string | null;

@@ -47,12 +47,19 @@ export function getDb(): Database.Database {
       id TEXT PRIMARY KEY,
       item_id TEXT NOT NULL,
       name TEXT NOT NULL DEFAULT 'Padrão',
+      price REAL,
       status TEXT NOT NULL DEFAULT 'available',
       buyer_name TEXT,
       buyer_contact TEXT,
       FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
     );
   `);
+
+  // Migration: add price column to item_variations if it doesn't exist
+  const columns = db.prepare("PRAGMA table_info(item_variations)").all() as { name: string }[];
+  if (!columns.find((c) => c.name === "price")) {
+    db.exec("ALTER TABLE item_variations ADD COLUMN price REAL");
+  }
 
   // Auto-migration: if item_variations is empty but items has rows,
   // create a default variation for each existing item

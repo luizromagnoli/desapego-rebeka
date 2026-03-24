@@ -59,7 +59,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const variationsRaw = formData.get("variations");
   if (typeof variationsRaw === "string" && variationsRaw.trim()) {
     try {
-      const parsed = JSON.parse(variationsRaw) as { id?: string; name: string }[];
+      const parsed = JSON.parse(variationsRaw) as { id?: string; name: string; price?: number | null }[];
       if (Array.isArray(parsed)) {
         syncItemVariations(id, parsed);
       }

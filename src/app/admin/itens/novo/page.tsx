@@ -21,7 +21,7 @@ export default function NovoItemPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
-  const [variations, setVariations] = useState<string[]>([]);
+  const [variations, setVariations] = useState<{ name: string; price: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -86,11 +86,15 @@ export default function NovoItemPage() {
   }
 
   function addVariation() {
-    setVariations((prev) => [...prev, '']);
+    setVariations((prev) => [...prev, { name: '', price: '' }]);
   }
 
   function updateVariationName(index: number, name: string) {
-    setVariations((prev) => prev.map((v, i) => (i === index ? name : v)));
+    setVariations((prev) => prev.map((v, i) => (i === index ? { ...v, name } : v)));
+  }
+
+  function updateVariationPrice(index: number, price: string) {
+    setVariations((prev) => prev.map((v, i) => (i === index ? { ...v, price } : v)));
   }
 
   function removeVariation(index: number) {
@@ -111,8 +115,7 @@ export default function NovoItemPage() {
     }
 
     // Validate variation names
-    const validVariations = variations.filter((v) => v.trim());
-    if (variations.length > 0 && validVariations.length !== variations.length) {
+    if (variations.length > 0 && variations.some((v) => !v.name.trim())) {
       setError('Preencha o nome de todas as variações ou remova as vazias');
       return;
     }
@@ -125,8 +128,12 @@ export default function NovoItemPage() {
       formData.append('price', price);
       photos.forEach((p) => formData.append('files', p.file));
 
-      if (validVariations.length > 0) {
-        formData.append('variations', JSON.stringify(validVariations));
+      if (variations.length > 0) {
+        const variationsPayload = variations.map((v) => ({
+          name: v.name.trim(),
+          price: v.price ? parseFloat(v.price) : null,
+        }));
+        formData.append('variations', JSON.stringify(variationsPayload));
       }
 
       const res = await fetch('/api/items', {
@@ -228,10 +235,19 @@ export default function NovoItemPage() {
                 <div key={i} className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={v}
+                    value={v.name}
                     onChange={(e) => updateVariationName(i, e.target.value)}
                     placeholder="Nome da variação"
                     className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={v.price}
+                    onChange={(e) => updateVariationPrice(i, e.target.value)}
+                    placeholder="Preço (opcional)"
+                    className="w-32 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="button"

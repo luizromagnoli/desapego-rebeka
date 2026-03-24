@@ -38,13 +38,23 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Preço inválido" }, { status: 400 });
   }
 
-  let variations: string[] | undefined;
+  let variations: { name: string; price?: number | null }[] | undefined;
   const variationsRaw = formData.get("variations");
   if (typeof variationsRaw === "string" && variationsRaw.trim()) {
     try {
       const parsed = JSON.parse(variationsRaw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        variations = parsed.filter((v: unknown) => typeof v === "string" && v.trim());
+        variations = parsed
+          .filter((v: unknown) => {
+            if (typeof v === "string") return v.trim();
+            if (typeof v === "object" && v !== null && "name" in v) return (v as { name: string }).name.trim();
+            return false;
+          })
+          .map((v: unknown) => {
+            if (typeof v === "string") return { name: v.trim(), price: null };
+            const obj = v as { name: string; price?: number | null };
+            return { name: obj.name.trim(), price: obj.price ?? null };
+          });
       }
     } catch {
       // ignore parse errors, will use default
