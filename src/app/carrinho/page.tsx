@@ -299,12 +299,14 @@ export default function CartPage() {
 
             {/* Disclaimer */}
             <div className="bg-gray-50 border border-gray-200 rounded-md p-4 mb-6 text-sm text-gray-600">
-              <p className="font-medium text-gray-700 mb-1">Retirada no local</p>
-              <p>
-                O comprador é responsável por retirar os itens no estúdio em
-                Alphaville - Barueri/SP, na data combinada. Para fotógrafos de
-                Itu/SP a entrega será a combinar em Itu.
-              </p>
+              <p className="font-semibold text-gray-700 mb-2">Regras</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Não realizamos envio dos itens.</li>
+                <li>A retirada deve ser combinada previamente e pode ser feita em Alphaville (Barueri/SP) ou em Itu/SP, conforme disponibilidade.</li>
+                <li>Móveis e itens de grande porte devem ser retirados exclusivamente em Alphaville.</li>
+                <li>Itens reservados e não pagos em até 24 horas serão liberados automaticamente.</li>
+                <li>Ao finalizar a compra, <a href="http://api.whatsapp.com/send?phone=5511950803161" target="_blank" rel="noopener noreferrer" className="text-amber-700 underline hover:text-amber-800">entre em contato pelo WhatsApp</a> para combinar a retirada.</li>
+              </ul>
             </div>
 
             {/* Error */}

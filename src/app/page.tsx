@@ -117,9 +117,16 @@ export default function HomePage() {
           <p className="mt-2 text-gray-600">
             Equipamentos, móveis e acessórios de estúdio fotográfico
           </p>
-          <p className="mt-3 text-sm text-gray-500 bg-gray-50 inline-block px-4 py-2 rounded-md">
-            Retirada no estúdio em Alphaville - Barueri/SP, na data combinada. Para fotógrafos de Itu/SP a entrega será a combinar em Itu.
-          </p>
+          <div className="mt-4 text-left inline-block bg-gray-50 px-5 py-3 rounded-md text-sm text-gray-600">
+            <p className="font-semibold text-gray-700 mb-1.5">Regras</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              <li>Não realizamos envio dos itens.</li>
+              <li>Retirada em Alphaville (Barueri/SP) ou Itu/SP, a combinar.</li>
+              <li>Móveis e itens grandes: retirada somente em Alphaville.</li>
+              <li>Reservas não pagas em 24h serão liberadas.</li>
+              <li><a href="http://api.whatsapp.com/send?phone=5511950803161" target="_blank" rel="noopener noreferrer" className="text-amber-700 underline hover:text-amber-800">WhatsApp</a> para combinar retirada.</li>
+            </ul>
+          </div>
         </div>
       </header>
 
