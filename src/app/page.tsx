@@ -12,11 +12,22 @@ function formatPrice(price: number): string {
   });
 }
 
+type SortOption = 'name' | 'price_asc' | 'price_desc';
+const ITEMS_PER_PAGE = 20;
+
+function getItemMinPrice(item: Item): number {
+  const vars = item.variations || [];
+  if (vars.length === 0) return item.price;
+  return Math.min(...vars.map((v) => v.price ?? item.price));
+}
+
 export default function HomePage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartVariationIds, setCartVariationIds] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     setCartVariationIds(getCart());
@@ -55,6 +66,34 @@ export default function HomePage() {
     return sum + matched.reduce((s, v) => s + (v.price ?? item.price), 0);
   }, 0);
 
+  // Sort items: available first, then within each group apply user sort
+  const sortedItems = [...items].sort((a, b) => {
+    // Available items first, then reserved
+    const statusOrder = { available: 0, reserved: 1, sold: 2 };
+    const statusDiff = (statusOrder[a.status as keyof typeof statusOrder] ?? 0) -
+      (statusOrder[b.status as keyof typeof statusOrder] ?? 0);
+    if (statusDiff !== 0) return statusDiff;
+
+    switch (sortBy) {
+      case 'name':
+        return a.title.localeCompare(b.title, 'pt-BR');
+      case 'price_asc':
+        return getItemMinPrice(a) - getItemMinPrice(b);
+      case 'price_desc':
+        return getItemMinPrice(b) - getItemMinPrice(a);
+      default:
+        return 0;
+    }
+  });
+
+  const totalPages = Math.ceil(sortedItems.length / ITEMS_PER_PAGE);
+  const paginatedItems = sortedItems.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  function handleSortChange(newSort: SortOption) {
+    setSortBy(newSort);
+    setPage(1);
+  }
+
   return (
     <div className="min-h-screen pb-24">
       {/* Header */}
@@ -88,8 +127,35 @@ export default function HomePage() {
           </p>
         )}
 
+        {/* Sort buttons */}
+        {!loading && !error && items.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            <span className="text-sm text-gray-500 mr-1">Ordenar:</span>
+            {([
+              { key: 'name' as SortOption, label: 'Nome' },
+              { key: 'price_asc' as SortOption, label: 'Menor preço' },
+              { key: 'price_desc' as SortOption, label: 'Maior preço' },
+            ]).map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => handleSortChange(opt.key)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                  sortBy === opt.key
+                    ? 'bg-amber-100 text-amber-800 border-amber-400'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-amber-400'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <span className="text-xs text-gray-400 ml-auto">
+              {sortedItems.length} {sortedItems.length === 1 ? 'item' : 'itens'}
+            </span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {items.map((item) => {
+          {paginatedItems.map((item) => {
             const variations = item.variations || [];
             const availableVariations = variations.filter((v) => v.status === 'available');
             const allUnavailable = availableVariations.length === 0;
@@ -205,6 +271,39 @@ export default function HomePage() {
             );
           })}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <button
+              onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo(0, 0); }}
+              disabled={page === 1}
+              className="px-3 py-1.5 rounded-md text-sm border border-gray-300 text-gray-600 hover:border-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => { setPage(p); window.scrollTo(0, 0); }}
+                className={`w-9 h-9 rounded-md text-sm font-medium border transition-colors ${
+                  p === page
+                    ? 'bg-amber-600 text-white border-amber-600'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-amber-400'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo(0, 0); }}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 rounded-md text-sm border border-gray-300 text-gray-600 hover:border-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Próxima
+            </button>
+          </div>
+        )}
       </main>
 
       {/* Floating cart bar */}
