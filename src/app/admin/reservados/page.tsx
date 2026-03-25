@@ -13,6 +13,12 @@ function formatPrice(price: number): string {
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function phoneToWhatsAppUrl(phone: string): string | null {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  return `https://api.whatsapp.com/send?phone=55${digits}`;
+}
+
 interface ReservedEntry {
   item: Item;
   variation: ItemVariation;
@@ -98,9 +104,14 @@ export default function ReservadosPage() {
                 <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <span className="font-semibold text-gray-800">{name}</span>
-                    {contact && (
-                      <span className="text-gray-500 text-sm ml-2">{contact}</span>
-                    )}
+                    {contact && (() => {
+                      const waUrl = phoneToWhatsAppUrl(contact);
+                      return waUrl ? (
+                        <a href={waUrl} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-700 text-sm ml-2 underline">{contact}</a>
+                      ) : (
+                        <span className="text-gray-500 text-sm ml-2">{contact}</span>
+                      );
+                    })()}
                   </div>
                   <div className="text-sm">
                     <span className="text-gray-500">{entries.length} {entries.length === 1 ? 'item' : 'itens'}</span>
