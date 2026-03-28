@@ -30,9 +30,20 @@ interface BuyerRow {
   total_value: number;
 }
 
+interface BuyerItem {
+  buyer_name: string;
+  buyer_contact: string;
+  status: string;
+  variation_name: string;
+  item_title: string;
+  price: number;
+}
+
 export default function ResumoPage() {
   const [totals, setTotals] = useState<Totals | null>(null);
   const [buyers, setBuyers] = useState<BuyerRow[]>([]);
+  const [buyerItems, setBuyerItems] = useState<BuyerItem[]>([]);
+  const [expandedBuyers, setExpandedBuyers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -45,6 +56,7 @@ export default function ResumoPage() {
       .then((data) => {
         setTotals(data.totals);
         setBuyers(data.buyers);
+        setBuyerItems(data.buyerItems || []);
         setLoading(false);
       })
       .catch((err) => {
@@ -200,16 +212,49 @@ export default function ResumoPage() {
                 </tr>
               </thead>
               <tbody>
-                {soldBuyers.map((b, i) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0">
-                    <td className="py-2 text-gray-800">{b.buyer_name}</td>
-                    <td className="py-2 text-gray-500">{b.buyer_contact}</td>
-                    <td className="py-2 text-right text-gray-700">{b.item_count}</td>
-                    <td className="py-2 text-right font-medium text-green-700">
-                      {formatPrice(b.total_value)}
-                    </td>
-                  </tr>
-                ))}
+                {soldBuyers.map((b, i) => {
+                  const key = `${b.buyer_name}|||${b.buyer_contact}|||sold`;
+                  const isExpanded = expandedBuyers.has(key);
+                  const items = buyerItems.filter(
+                    (bi) => bi.buyer_name === b.buyer_name && bi.buyer_contact === b.buyer_contact && bi.status === 'sold'
+                  );
+                  return (
+                    <>
+                      <tr
+                        key={i}
+                        className="border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50"
+                        onClick={() => setExpandedBuyers((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(key)) next.delete(key); else next.add(key);
+                          return next;
+                        })}
+                      >
+                        <td className="py-2 text-gray-800">
+                          <span className="mr-1 text-xs text-gray-400">{isExpanded ? '▼' : '▶'}</span>
+                          {b.buyer_name}
+                        </td>
+                        <td className="py-2 text-gray-500">{b.buyer_contact}</td>
+                        <td className="py-2 text-right text-gray-700">{b.item_count}</td>
+                        <td className="py-2 text-right font-medium text-green-700">
+                          {formatPrice(b.total_value)}
+                        </td>
+                      </tr>
+                      {isExpanded && items.map((bi, j) => (
+                        <tr key={`${i}-${j}`} className="bg-gray-50 border-b border-gray-50">
+                          <td className="py-1.5 pl-8 text-gray-600 text-xs" colSpan={2}>
+                            {bi.item_title}
+                            {bi.variation_name !== 'Padrão' && (
+                              <span className="text-gray-400"> — {bi.variation_name}</span>
+                            )}
+                          </td>
+                          <td className="py-1.5 text-right text-gray-500 text-xs" colSpan={2}>
+                            {formatPrice(bi.price)}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  );
+                })}
               </tbody>
             </table>
           </div>

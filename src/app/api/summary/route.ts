@@ -69,5 +69,23 @@ export async function GET(request: NextRequest) {
     total_value: number;
   }[];
 
-  return Response.json({ totals, buyers });
+  const buyerItems = db
+    .prepare(
+      `SELECT v.buyer_name, v.buyer_contact, v.status, v.name as variation_name,
+        i.title as item_title, COALESCE(v.price, i.price) as price
+      FROM item_variations v
+      JOIN items i ON i.id = v.item_id
+      WHERE v.buyer_name IS NOT NULL
+      ORDER BY v.buyer_name, v.status, i.title`
+    )
+    .all() as {
+    buyer_name: string;
+    buyer_contact: string;
+    status: string;
+    variation_name: string;
+    item_title: string;
+    price: number;
+  }[];
+
+  return Response.json({ totals, buyers, buyerItems });
 }
