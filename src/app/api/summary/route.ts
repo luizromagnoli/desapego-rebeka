@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
   const buyerItems = db
     .prepare(
       `SELECT v.buyer_name, v.buyer_contact, v.status, v.name as variation_name,
-        i.title as item_title, COALESCE(v.price, i.price) as price
+        i.id as item_id, i.title as item_title, COALESCE(v.price, i.price) as price
       FROM item_variations v
       JOIN items i ON i.id = v.item_id
       WHERE v.buyer_name IS NOT NULL
@@ -83,6 +83,7 @@ export async function GET(request: NextRequest) {
     buyer_contact: string;
     status: string;
     variation_name: string;
+    item_id: string;
     item_title: string;
     price: number;
   }[];

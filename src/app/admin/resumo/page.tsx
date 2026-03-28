@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 function getHeaders(): HeadersInit {
   const pw = sessionStorage.getItem('adminPassword') ?? '';
@@ -35,6 +36,7 @@ interface BuyerItem {
   buyer_contact: string;
   status: string;
   variation_name: string;
+  item_id: string;
   item_title: string;
   price: number;
 }
@@ -241,8 +243,10 @@ export default function ResumoPage() {
                       </tr>
                       {isExpanded && items.map((bi, j) => (
                         <tr key={`${i}-${j}`} className="bg-gray-50 border-b border-gray-50">
-                          <td className="py-1.5 pl-8 text-gray-600 text-xs" colSpan={2}>
-                            {bi.item_title}
+                          <td className="py-1.5 pl-8 text-xs" colSpan={2}>
+                            <Link href={`/admin/itens/${bi.item_id}/editar`} className="text-blue-600 hover:text-blue-800">
+                              {bi.item_title}
+                            </Link>
                             {bi.variation_name !== 'Padrão' && (
                               <span className="text-gray-400"> — {bi.variation_name}</span>
                             )}
