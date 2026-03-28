@@ -32,6 +32,7 @@ interface BuyerRow {
 }
 
 interface BuyerItem {
+  variation_id: string;
   buyer_name: string;
   buyer_contact: string;
   status: string;
@@ -244,7 +245,7 @@ export default function ResumoPage() {
                       {isExpanded && items.map((bi, j) => (
                         <tr key={`${i}-${j}`} className="bg-gray-50 border-b border-gray-50">
                           <td className="py-1.5 pl-8 text-xs" colSpan={2}>
-                            <Link href={`/admin/itens/${bi.item_id}/editar`} className="text-blue-600 hover:text-blue-800">
+                            <Link href={`/admin/itens/${bi.item_id}?v=${bi.variation_id}`} className="text-blue-600 hover:text-blue-800">
                               {bi.item_title}
                             </Link>
                             {bi.variation_name !== 'Padrão' && (
