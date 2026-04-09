@@ -202,7 +202,6 @@ function HomePageContent() {
             <div className="bg-gray-50 px-5 py-3 rounded-md">
               <p className="font-semibold text-gray-700 mb-1.5">Regras</p>
               <ul className="list-disc list-inside space-y-0.5">
-                <li>Não realizamos envio dos itens.</li>
                 <li>Retirada em Alphaville (Barueri/SP) ou Itu/SP, a combinar.</li>
                 <li>Móveis e itens grandes: retirada somente em Alphaville.</li>
                 <li>Reservas não pagas em 24h serão liberadas.</li>
@@ -212,7 +211,7 @@ function HomePageContent() {
             <div className="bg-amber-50 border border-amber-200 px-5 py-3 rounded-md">
               <p className="font-semibold text-amber-800 mb-1.5">Envio e Pagamento</p>
               <ul className="list-disc list-inside space-y-0.5">
-                <li>Envio a combinar, só não enviaremos móveis e itens muito grandes.</li>
+                <li>Envio a combinar para compras acima de R$300,00. Não enviaremos móveis e itens muito grandes. Frete por conta do comprador.</li>
                 <li>Aceitamos pagamento por cartão, mas será cobrada a taxa do cartão.</li>
               </ul>
             </div>
