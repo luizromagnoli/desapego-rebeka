@@ -72,7 +72,8 @@ export async function GET(request: NextRequest) {
   const buyerItems = db
     .prepare(
       `SELECT v.id as variation_id, v.buyer_name, v.buyer_contact, v.status, v.name as variation_name,
-        i.id as item_id, i.title as item_title, COALESCE(v.price, i.price) as price
+        i.id as item_id, i.title as item_title, COALESCE(v.price, i.price) as price,
+        CASE WHEN v.price IS NOT NULL THEN v.previous_price ELSE i.previous_price END as previous_price
       FROM item_variations v
       JOIN items i ON i.id = v.item_id
       WHERE v.buyer_name IS NOT NULL
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest) {
     item_id: string;
     item_title: string;
     price: number;
+    previous_price: number | null;
   }[];
 
   return Response.json({ totals, buyers, buyerItems });

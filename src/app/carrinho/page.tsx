@@ -213,7 +213,18 @@ export default function CartPage() {
                         {displayTitle}
                       </h3>
                       <p className="text-amber-700 font-semibold">
-                        {formatPrice(variation.price ?? item.price)}
+                        {(() => {
+                          const currentPrice = variation.price ?? item.price;
+                          const previousPrice = variation.price != null ? variation.previous_price : item.previous_price;
+                          return (
+                            <>
+                              {previousPrice != null && previousPrice !== currentPrice && (
+                                <span className="line-through text-gray-400 font-normal mr-1">{formatPrice(previousPrice)}</span>
+                              )}
+                              {formatPrice(currentPrice)}
+                            </>
+                          );
+                        })()}
                       </p>
                     </div>
 

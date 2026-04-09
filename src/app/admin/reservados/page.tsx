@@ -146,7 +146,12 @@ export default function ReservadosPage() {
                           <Link href={`/admin/itens/${item.id}/editar`} className="font-medium text-gray-800 hover:text-blue-600 text-sm truncate block">
                             {displayTitle}
                           </Link>
-                          <p className="text-sm text-amber-700 font-semibold">{formatPrice(item.price)}</p>
+                          <p className="text-sm text-amber-700 font-semibold">
+                            {item.previous_price != null && item.previous_price !== item.price && (
+                              <span className="line-through text-gray-400 font-normal mr-1">{formatPrice(item.previous_price)}</span>
+                            )}
+                            {formatPrice(item.price)}
+                          </p>
                         </div>
 
                         <div className="flex gap-2 flex-shrink-0">

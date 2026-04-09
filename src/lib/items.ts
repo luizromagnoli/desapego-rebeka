@@ -16,6 +16,7 @@ export interface ItemVariation {
   item_id: string;
   name: string;
   price: number | null;
+  previous_price: number | null;
   status: string;
   buyer_name: string | null;
   buyer_contact: string | null;
@@ -26,6 +27,7 @@ export interface Item {
   title: string;
   description: string;
   price: number;
+  previous_price: number | null;
   category: string | null;
   status: string;
   buyer_name: string | null;
@@ -192,6 +194,8 @@ export function updateItem(
     values.push(data.description);
   }
   if (data.price !== undefined) {
+    fields.push("previous_price = CASE WHEN price != ? THEN price ELSE previous_price END");
+    values.push(data.price);
     fields.push("price = ?");
     values.push(data.price);
   }
@@ -280,11 +284,17 @@ export function createVariation(itemId: string, name: string, price?: number | n
 
 export function updateVariation(variationId: string, name: string, price?: number | null): void {
   const db = getDb();
-  db.prepare("UPDATE item_variations SET name = ?, price = ? WHERE id = ?").run(
-    name,
-    price ?? null,
-    variationId
-  );
+  const newPrice = price ?? null;
+  db.prepare(
+    `UPDATE item_variations SET
+      name = ?,
+      previous_price = CASE
+        WHEN price IS NOT NULL AND (? IS NULL OR price != ?) THEN price
+        ELSE previous_price
+      END,
+      price = ?
+    WHERE id = ?`
+  ).run(name, newPrice, newPrice, newPrice, variationId);
 }
 
 export function deleteVariation(variationId: string): void {

@@ -177,6 +177,9 @@ export default function AdminItensPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
+                      {item.previous_price != null && item.previous_price !== item.price && (
+                        <span className="line-through text-gray-400 mr-1">{formatPrice(item.previous_price)}</span>
+                      )}
                       {formatPrice(item.price)}
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs">

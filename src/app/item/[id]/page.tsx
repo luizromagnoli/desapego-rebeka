@@ -285,15 +285,32 @@ export default function ItemDetailPage() {
               <h1 className="text-2xl font-bold text-gray-900">{item.title}</h1>
 
               {(() => {
-                const prices = variations
-                  .filter((v) => v.status === 'available')
-                  .map((v) => v.price ?? item.price);
+                const availableVars = variations.filter((v) => v.status === 'available');
+                const prices = availableVars.map((v) => v.price ?? item.price);
                 const minPrice = prices.length > 0 ? Math.min(...prices) : item.price;
                 const maxPrice = prices.length > 0 ? Math.max(...prices) : item.price;
                 const hasDifferentPrices = showVariationSelector && minPrice !== maxPrice;
 
+                // For single-price display, show previous price if available
+                const showPrevious = !hasDifferentPrices;
+                let previousPrice: number | null = null;
+                if (showPrevious) {
+                  if (isSingleDefault) {
+                    const v = variations[0];
+                    previousPrice = v?.price != null ? v.previous_price : item.previous_price;
+                  } else if (availableVars.length === 1) {
+                    const v = availableVars[0];
+                    previousPrice = v.price != null ? v.previous_price : item.previous_price;
+                  } else {
+                    previousPrice = item.previous_price;
+                  }
+                }
+
                 return (
                   <p className="mt-3 text-3xl font-bold text-amber-700">
+                    {previousPrice != null && previousPrice !== minPrice && (
+                      <span className="line-through text-gray-400 font-normal text-xl mr-2">{formatPrice(previousPrice)}</span>
+                    )}
                     {hasDifferentPrices
                       ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`
                       : formatPrice(minPrice)}
@@ -342,7 +359,15 @@ export default function ItemDetailPage() {
                           }`}
                         >
                           {v.name}
-                          {v.price != null && v.price !== item.price && ` - ${formatPrice(v.price)}`}
+                          {v.price != null && v.price !== item.price && (
+                            <>
+                              {' - '}
+                              {v.previous_price != null && v.previous_price !== v.price && (
+                                <span className="line-through text-gray-400 font-normal mr-1">{formatPrice(v.previous_price)}</span>
+                              )}
+                              {formatPrice(v.price)}
+                            </>
+                          )}
                           {inCart && ' ✓'}
                           {v.status === 'reserved' && ' (reservado)'}
                           {v.status === 'sold' && ' (vendido)'}

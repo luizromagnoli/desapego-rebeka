@@ -119,6 +119,9 @@ export default function AdminItemViewPage() {
             <h1 className="text-xl font-bold text-gray-900">{item.title}</h1>
 
             <p className="mt-2 text-2xl font-bold text-amber-700">
+              {item.previous_price != null && item.previous_price !== item.price && (
+                <span className="line-through text-gray-400 font-normal text-lg mr-2">{formatPrice(item.previous_price)}</span>
+              )}
               {formatPrice(item.price)}
             </p>
 
@@ -172,6 +175,9 @@ export default function AdminItemViewPage() {
                         </div>
                         {v.price != null && (
                           <span className="text-sm font-medium text-amber-700">
+                            {v.previous_price != null && v.previous_price !== v.price && (
+                              <span className="line-through text-gray-400 font-normal mr-1">{formatPrice(v.previous_price)}</span>
+                            )}
                             {formatPrice(v.price)}
                           </span>
                         )}

@@ -81,9 +81,14 @@ export default function ItemCard({ item, cartVariationIds, onToggleVariation, co
           {(() => {
             if (!hasMultipleVariations) {
               const vPrice = variations[0]?.price;
+              const currentPrice = vPrice ?? item.price;
+              const previousPrice = vPrice != null ? variations[0]?.previous_price : item.previous_price;
               return (
                 <p className={`mt-1 font-bold text-amber-700 ${compact ? 'text-base' : 'text-lg'}`}>
-                  {formatPrice(vPrice ?? item.price)}
+                  {previousPrice != null && previousPrice !== currentPrice && (
+                    <span className="line-through text-gray-400 font-normal mr-1">{formatPrice(previousPrice)}</span>
+                  )}
+                  {formatPrice(currentPrice)}
                 </p>
               );
             }

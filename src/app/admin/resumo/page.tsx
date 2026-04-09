@@ -40,6 +40,7 @@ interface BuyerItem {
   item_id: string;
   item_title: string;
   price: number;
+  previous_price: number | null;
 }
 
 export default function ResumoPage() {
@@ -253,6 +254,9 @@ export default function ResumoPage() {
                             )}
                           </td>
                           <td className="py-1.5 text-right text-gray-500 text-xs" colSpan={2}>
+                            {bi.previous_price != null && bi.previous_price !== bi.price && (
+                              <span className="line-through text-gray-400 mr-1">{formatPrice(bi.previous_price)}</span>
+                            )}
                             {formatPrice(bi.price)}
                           </td>
                         </tr>

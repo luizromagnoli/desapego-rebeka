@@ -72,6 +72,16 @@ export function getDb(): Database.Database {
     db.exec("ALTER TABLE items ADD COLUMN category TEXT");
   }
 
+  // Migration: add previous_price column to items if it doesn't exist
+  if (!itemColumns.find((c) => c.name === "previous_price")) {
+    db.exec("ALTER TABLE items ADD COLUMN previous_price REAL");
+  }
+
+  // Migration: add previous_price column to item_variations if it doesn't exist
+  if (!columns.find((c) => c.name === "previous_price")) {
+    db.exec("ALTER TABLE item_variations ADD COLUMN previous_price REAL");
+  }
+
   // Auto-migration: if item_variations is empty but items has rows,
   // create a default variation for each existing item
   const variationCount = (db.prepare("SELECT COUNT(*) as cnt FROM item_variations").get() as { cnt: number }).cnt;
