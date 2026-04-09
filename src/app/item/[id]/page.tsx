@@ -421,15 +421,24 @@ export default function ItemDetailPage() {
                 </div>
               )}
 
-              <div className="mt-6 bg-gray-50 border border-gray-200 rounded-md p-4 text-sm text-gray-600">
-                <p className="font-semibold text-gray-700 mb-2">Regras</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Envio a combinar, só não enviaremos móveis e itens muito grandes.</li>
-                  <li>A retirada deve ser combinada previamente e pode ser feita em Alphaville (Barueri/SP) ou em Itu/SP, conforme disponibilidade.</li>
-                  <li>Itens reservados e não pagos em até 24 horas serão liberados automaticamente.</li>
-                  <li>Aceitamos pagamento por cartão, mas será cobrada a taxa do cartão.</li>
-                  <li>Ao finalizar a compra, <a href="http://api.whatsapp.com/send?phone=5511950803161" target="_blank" rel="noopener noreferrer" className="text-amber-700 underline hover:text-amber-800">entre em contato pelo WhatsApp</a> para combinar a retirada.</li>
-                </ul>
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-sm text-gray-600">
+                  <p className="font-semibold text-gray-700 mb-2">Regras</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Não realizamos envio dos itens.</li>
+                    <li>A retirada deve ser combinada previamente e pode ser feita em Alphaville (Barueri/SP) ou em Itu/SP, conforme disponibilidade.</li>
+                    <li>Móveis e itens de grande porte devem ser retirados exclusivamente em Alphaville.</li>
+                    <li>Itens reservados e não pagos em até 24 horas serão liberados automaticamente.</li>
+                    <li>Ao finalizar a compra, <a href="http://api.whatsapp.com/send?phone=5511950803161" target="_blank" rel="noopener noreferrer" className="text-amber-700 underline hover:text-amber-800">entre em contato pelo WhatsApp</a> para combinar a retirada.</li>
+                  </ul>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-sm text-gray-600">
+                  <p className="font-semibold text-amber-800 mb-2">Envio e Pagamento</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Envio a combinar, só não enviaremos móveis e itens muito grandes.</li>
+                    <li>Aceitamos pagamento por cartão, mas será cobrada a taxa do cartão.</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
