@@ -201,10 +201,10 @@ function HomePageContent() {
           <div className="mt-4 text-left inline-block bg-gray-50 px-5 py-3 rounded-md text-sm text-gray-600">
             <p className="font-semibold text-gray-700 mb-1.5">Regras</p>
             <ul className="list-disc list-inside space-y-0.5">
-              <li>Não realizamos envio dos itens.</li>
+              <li>Envio a combinar, só não enviaremos móveis e itens muito grandes.</li>
               <li>Retirada em Alphaville (Barueri/SP) ou Itu/SP, a combinar.</li>
-              <li>Móveis e itens grandes: retirada somente em Alphaville.</li>
               <li>Reservas não pagas em 24h serão liberadas.</li>
+              <li>Aceitamos pagamento por cartão, mas será cobrada a taxa do cartão.</li>
               <li><a href="http://api.whatsapp.com/send?phone=5511950803161" target="_blank" rel="noopener noreferrer" className="text-amber-700 underline hover:text-amber-800">WhatsApp</a> para combinar retirada.</li>
             </ul>
           </div>
